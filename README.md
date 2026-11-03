@@ -18,9 +18,9 @@ The source pack is preserved unchanged, excluding Finder metadata. Its README do
 
 ## Play the prototype
 
-Run `python3 -m http.server 8000` from the repository root and open http://localhost:8000/. Use A/D or the arrow keys to move, Space to jump, F to interact, and P to pause. Touch buttons provide movement, jump, and action.
+Run `python3 -m http.server 8000` from the repository root and open http://localhost:8000/. Use A/D or the arrow keys to move, Space to jump, F to interact, P to pause, and R to restart. Touch buttons provide movement, jump, and action.
 
-Leave the apartment to the right, pick up the full beer stack in the garage, and cross Residential A, Downtown, and Residential B. At the destination, use Action near the center marker to enter. The bar backdrop is the temporary interior. Use Action at the delivery marker to finish. Bumps are counted and briefly knock Lil’ G back.
+Leave the apartment to the right, pick up the full beer stack in the garage, and cross three residential stretches on either side of Downtown. Collect the spring in Residential A1 to unlock Mega Jump. Press Jump twice quickly for extra height. Landing on top of moving traffic is safe. At the destination, use Action near the center marker to enter. Inside 3rd & Vine, use Action at the delivery marker by the bar to finish. Bumps are counted and briefly knock Lil’ G back.
 
 This first playable uses the browser Canvas API and Seth Happens-style keyboard bindings. It has no external build dependencies. For future GitHub Pages hosting, serve the repository root. Asset links and the web app manifest use relative URLs.
 

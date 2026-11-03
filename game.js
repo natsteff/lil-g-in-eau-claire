@@ -4,19 +4,31 @@ const status = document.querySelector('#status');
 const menu = document.querySelector('#menu');
 const message = document.querySelector('#message');
 const start = document.querySelector('#start');
+const restart = document.querySelector('#restart');
 const pause = document.querySelector('#pause');
+const sound = document.querySelector('#sound');
+const fullscreen = document.querySelector('#fullscreen');
+const shell = document.querySelector('main');
+const music = new Audio('./assets/audio/retro-ec.mp3');
+music.loop = true;
+music.volume = 0.65;
+let soundOn = true;
 const width = canvas.width;
 const height = canvas.height;
-const ground = 339;
+const defaultGround = 339;
 const pack = './assets/great-monkey-beer-run/monkey-phaser-skin';
 const route = [
-  { art: 'apartment', label: 'Apartment', length: 960 },
+  { art: 'apartment', label: 'Apartment', length: 960, spawn: 220 },
   { art: 'garage', label: 'Garage', length: 960, pickup: 475 },
-  { art: 'residential-a', label: 'Residential A', length: 1620, obstacles: [[460, 2], [830, 0], [1290, 3]] },
-  { art: 'downtown', label: 'Downtown', length: 2180, obstacles: [[460, 1], [800, 5], [1140, 3], [1500, 4], [1830, 0]] },
-  { art: 'residential-b', label: 'Residential B', length: 1640, obstacles: [[450, 2], [790, 5], [1190, 3]] },
-  { art: 'destination', label: 'Destination', length: 960, door: 485, obstacles: [[300, 6]] },
-  { art: 'bar', label: 'Inside', length: 960, delivery: 510 },
+  { art: 'residential-a', label: 'Residential A1', length: 1620, spring: 250, obstacles: [[550, 2], [1280, 3]], traffic: [[940, 0]] },
+  { neighborhood: 0, label: 'Residential A2', length: 1580, obstacles: [[480, 0]], traffic: [[800, 1], [1240, 3]] },
+  { neighborhood: 1, label: 'Residential A3', length: 1710, obstacles: [[520, 5], [1370, 2]], traffic: [[950, 2]] },
+  { art: 'downtown', label: 'Downtown', length: 2180, ground: 270, obstacles: [[460, 1], [800, 5], [1140, 3], [1500, 4], [1830, 0]] },
+  { art: 'residential-b', label: 'Residential B1', length: 1640, obstacles: [[450, 2], [1190, 3]], traffic: [[830, 4]] },
+  { neighborhood: 2, label: 'Residential B2', length: 1580, obstacles: [[470, 1]], traffic: [[820, 0], [1230, 1]] },
+  { neighborhood: 3, label: 'Residential B3', length: 1710, obstacles: [[490, 3], [1380, 5]], traffic: [[930, 2]] },
+  { art: 'destination', label: 'Destination', length: 960, ground: 252, door: 525, obstacles: [[300, 6]] },
+  { backdrop: './assets/3rd-and-vine-interior.png', label: 'Inside 3rd & Vine', length: 960, delivery: 450, ground: 355 },
 ];
 function loadImage(url) {
   return new Promise((resolve, reject) => {
@@ -27,10 +39,15 @@ function loadImage(url) {
   });
 }
 
-let backgrounds, player, cast, cargo;
+let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt;
+let megaUnlocked = false;
+let jumpStarted = -Infinity;
+let riding = null;
+let enteredAt = 0;
+let tutorialUntil = 0;
 let level = 0;
-let x = 75;
-let y = ground;
+let x = route[0].spawn;
+let y = defaultGround;
 let velocity = 0;
 let direction = 1;
 let carrying = false;
@@ -44,15 +61,54 @@ const touches = new Map();
 const pressed = new Set();
 const keys = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', Space: 'jump', ArrowUp: 'jump', KeyW: 'jump', KeyF: 'action' };
 const active = key => held.has(key) || [...touches.values()].includes(key);
-const near = point => point !== undefined && Math.abs(x - point) < 62 && y > ground - 30;
+const groundY = () => route[level].ground ?? defaultGround;
+const near = point => point !== undefined && Math.abs(x - point) < 62 && y > groundY() - 30;
 
 function clearInput() {
   held.clear();
   touches.clear();
   pressed.clear();
 }
+function syncMusic() {
+  if (soundOn && mode === 'play') {
+    music.play().catch(() => {
+      if (soundOn && mode === 'play') sound.textContent = 'Retry sound';
+    });
+  } else music.pause();
+}
+function toggleSound() {
+  if (sound.textContent !== 'Retry sound') soundOn = !soundOn;
+  sound.textContent = soundOn ? 'Sound: On' : 'Sound: Off';
+  sound.setAttribute('aria-pressed', String(soundOn));
+  syncMusic();
+}
+function updateFullscreen() {
+  const expanded = Boolean(document.fullscreenElement) || shell.classList.contains('expanded');
+  fullscreen.textContent = expanded ? 'Exit full screen' : 'Full screen';
+  fullscreen.setAttribute('aria-pressed', String(expanded));
+}
+async function toggleFullscreen() {
+  if (document.fullscreenElement) {
+    await document.exitFullscreen();
+  } else if (shell.classList.contains('expanded')) {
+    shell.classList.remove('expanded');
+  } else {
+    try {
+      await shell.requestFullscreen();
+    } catch {
+      shell.classList.add('expanded');
+    }
+  }
+  updateFullscreen();
+}
+sound.onclick = toggleSound;
+fullscreen.onclick = toggleFullscreen;
+document.addEventListener('fullscreenchange', updateFullscreen);
+
 function showMenu(next, copy, label) {
   mode = next;
+  menu.dataset.mode = next;
+  syncMusic();
   clearInput();
   message.textContent = copy;
   start.textContent = label;
@@ -60,6 +116,8 @@ function showMenu(next, copy, label) {
 }
 function play() {
   mode = 'play';
+  restart.disabled = false;
+  syncMusic();
   menu.hidden = true;
   pause.textContent = 'Pause';
 }
@@ -71,24 +129,43 @@ function togglePause() {
 }
 function enter(index) {
   level = index;
-  x = 75;
-  y = ground;
+  enteredAt = clock;
+  riding = null;
+  jumpStarted = -Infinity;
+  x = route[index].spawn ?? 75;
+  y = groundY();
   velocity = 0;
   direction = 1;
   invincible = 0;
 }
+function restartRun() {
+  if (start.disabled) return;
+  clearInput();
+  carrying = false;
+  hits = 0;
+  clock = 0;
+  megaUnlocked = false;
+  tutorialUntil = 0;
+  music.currentTime = 0;
+  enter(0);
+  play();
+}
 start.disabled = true;
 start.onclick = () => {
-  if (mode !== 'paused') {
-    carrying = false;
-    hits = 0;
-    enter(0);
-  }
-  play();
+  if (mode === 'paused') play();
+  else restartRun();
 };
+restart.onclick = restartRun;
 pause.onclick = togglePause;
 
 window.addEventListener('keydown', event => {
+  if (event.code === 'Escape' && shell.classList.contains('expanded')) {
+    shell.classList.remove('expanded');
+    updateFullscreen();
+  }
+  if (event.code === 'KeyR' && !event.repeat && mode !== 'title') restartRun();
+  if (event.code === 'KeyS' && !event.repeat) toggleSound();
+  if (event.code === 'KeyV' && !event.repeat) toggleFullscreen();
   if (event.code === 'KeyP' && !event.repeat) togglePause();
   const key = keys[event.code];
   if (!key || mode !== 'play') return;
@@ -117,27 +194,105 @@ for (const button of document.querySelectorAll('[data-key]')) {
   }
 }
 
-function obstacleY(kind) {
-  return kind === 3 ? ground - 70 + Math.sin(clock * 4) * 15 : ground;
+function patrolX(anchor, kind) {
+  return anchor + Math.sin(clock * (1.15 + kind * 0.12) + anchor) * (kind === 3 ? 90 : 65);
+}
+// Tight source rectangles remove the atlas padding below each character's feet.
+const obstacleFrames = [
+  [58, 18, 351, 401], [484, 30, 345, 389], [915, 96, 367, 323],
+  [1378, 18, 363, 394], [54, 463, 327, 395], [480, 460, 376, 398],
+  [930, 462, 357, 396],
+];
+const neighborhoodStrips = [[0, 312], [312, 315], [627, 313], [940, 314]];
+const vehicleFrames = [
+  [14, 286, 362, 193], [430, 227, 173, 252], [645, 267, 599, 210],
+  [1277, 295, 387, 182], [1699, 262, 463, 214],
+];
+const vehicles = [
+  { width: 196, height: 104 }, { width: 69, height: 101 },
+  { width: 382, height: 134 }, { width: 204, height: 96 },
+  { width: 294, height: 136 },
+];
+const trafficSpeed = 380;
+const trafficGap = 0.8;
+function trafficPass(scene, time) {
+  if (!scene.traffic?.length) return null;
+  const margin = 210;
+  const firstStart = width + margin;
+  const firstDuration = (firstStart + margin) / trafficSpeed;
+  const elapsed = Math.max(0, time - enteredAt);
+  if (elapsed < firstDuration) {
+    return { vehicle: scene.traffic[0], x: firstStart - elapsed * trafficSpeed, active: true };
+  }
+  const repeatElapsed = elapsed - firstDuration;
+  const slot = (scene.length + 2 * margin) / trafficSpeed + trafficGap;
+  const phase = repeatElapsed % slot;
+  const vehicle = scene.traffic[(1 + Math.floor(repeatElapsed / slot)) % scene.traffic.length];
+  return {
+    vehicle,
+    x: scene.length + margin - (phase - trafficGap) * trafficSpeed,
+    active: phase >= trafficGap,
+  };
+}
+function birdLift(anchor) {
+  const dive = Math.max(0, Math.cos(clock * 1.45 + anchor)) ** 5;
+  return 122 - dive * 105;
+}
+function bump() {
+  hits += 1;
+  invincible = 1.1;
+  riding = null;
+  x = Math.max(18, x - 45);
 }
 function update(dt) {
   clock += dt;
   const scene = route[level];
+  const ground = groundY();
   const move = Number(active('right')) - Number(active('left'));
   if (move) direction = move;
+  const pass = trafficPass(scene, clock);
+  if (riding && (!pass?.active || pass.vehicle !== riding)) riding = null;
+  if (riding) x -= trafficSpeed * dt;
   x = Math.max(18, Math.min(scene.length + 24, x + move * (carrying ? 243 : 272) * dt));
-  if (pressed.has('jump') && y === ground) velocity = -520;
-  velocity += 1280 * dt;
-  y = Math.min(ground, y + velocity * dt);
-  if (y === ground) velocity = 0;
-  invincible = Math.max(0, invincible - dt);
-  for (const [position, kind] of scene.obstacles ?? []) {
-    const feet = obstacleY(kind);
-    if (!invincible && Math.abs(x - position) < 33 && y > feet - 55 && y - 65 < feet) {
-      hits += 1;
-      invincible = 1.1;
-      x = Math.max(18, x - 45);
+  if (riding && Math.abs(x - pass.x) > vehicles[riding[1]].width / 2 + 9) riding = null;
+  if (!megaUnlocked && scene.spring !== undefined && Math.abs(x - scene.spring) < 28 && y > ground - 64) {
+    megaUnlocked = true;
+    tutorialUntil = clock + 7;
+  }
+  if (pressed.has('jump')) {
+    if (riding || y === ground) {
+      riding = null;
+      velocity = -575;
+      jumpStarted = clock;
+    } else if (megaUnlocked && clock - jumpStarted <= 0.32) {
+      velocity = -690;
+      jumpStarted = -Infinity;
     }
+  }
+  const previousY = y;
+  if (!riding) {
+    velocity += 1280 * dt;
+    y = Math.min(ground, y + velocity * dt);
+    if (y === ground) velocity = 0;
+  }
+  invincible = Math.max(0, invincible - dt);
+  if (pass?.active) {
+    const vehicle = pass.vehicle;
+    const kind = vehicle[1];
+    const shape = vehicles[kind];
+    const top = ground - shape.height;
+    const overlaps = Math.abs(x - pass.x) < shape.width / 2 + 9;
+    if (overlaps && riding !== vehicle && velocity >= 0 && previousY <= top && y >= top) {
+      riding = vehicle;
+      y = top;
+      velocity = 0;
+    } else if (overlaps && riding !== vehicle && !invincible && y > top + 2 && y - 48 < ground) {
+      bump();
+    }
+  }
+  for (const [position, kind] of scene.obstacles ?? []) {
+    const bottom = ground - (kind === 3 ? birdLift(position) : 0);
+    if (!invincible && Math.abs(x - patrolX(position, kind)) < 33 && y > bottom - 55 && y - 55 < bottom) bump();
   }
   if (pressed.has('action')) {
     if (near(scene.pickup)) carrying = true;
@@ -154,18 +309,88 @@ function update(dt) {
   pressed.clear();
 }
 
+function resizeCanvas() {
+  const bounds = canvas.getBoundingClientRect();
+  const scale = Math.min(bounds.width / width, bounds.height / height) * window.devicePixelRatio;
+  const pixelWidth = Math.max(1, Math.round(width * scale));
+  const pixelHeight = Math.max(1, Math.round(height * scale));
+  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+  }
+  ctx.setTransform(pixelWidth / width, 0, 0, pixelHeight / height, 0, 0);
+  ctx.imageSmoothingQuality = 'high';
+}
+new ResizeObserver(resizeCanvas).observe(canvas);
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function drawCargo(center, base, size, art = cargo) {
+  const tall = size * art.height / art.width;
+  ctx.drawImage(art, center - size / 2, base - tall, size, tall);
+}
+
+const carryScale = 0.19;
+// Body center, feet baseline and palm position within each carrying cell.
+const carryAnchors = [
+  [147, 511, 86, 213], [146, 510, 81, 213], [146, 510, 77, 213],
+  [146, 508, 79, 213], [142, 450, 78, 163], [133, 516, 63, 225],
+];
+
+function drawSpring(center, ground) {
+  ctx.save();
+  ctx.translate(center, ground - 20);
+  const metal = ctx.createLinearGradient(-13, 0, 13, 0);
+  metal.addColorStop(0, '#506077');
+  metal.addColorStop(0.35, '#e5eff9');
+  metal.addColorStop(0.55, '#fff');
+  metal.addColorStop(1, '#697e96');
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = metal;
+  for (let turn = 0; turn < 5; turn++) {
+    ctx.beginPath();
+    ctx.ellipse(0, 12 - turn * 6, 13, 4, -0.12, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 14px system-ui';
+  ctx.fillText('Mega Jump', 0, -28);
+  ctx.restore();
+}
 function draw() {
   const scene = route[level];
+  const ground = groundY();
   const camera = Math.min(scene.length - width, Math.max(0, x - width * 0.4));
-  ctx.drawImage(backgrounds[level], -camera, 0, scene.length, height);
+  const background = backgrounds[level];
+  if (scene.neighborhood !== undefined) {
+    const strip = neighborhoodStrips[scene.neighborhood];
+    ctx.drawImage(background, 0, strip[0], background.width, strip[1], -camera, 0, scene.length, height);
+  } else ctx.drawImage(background, -camera, 0, scene.length, height);
+  if (!megaUnlocked && scene.spring !== undefined) drawSpring(scene.spring - camera, ground);
+  const pass = trafficPass(scene, clock);
+  if (pass?.active) {
+    const kind = pass.vehicle[1];
+    const shape = vehicles[kind];
+    const [left, top, sourceWidth, sourceHeight] = vehicleFrames[kind];
+    ctx.drawImage(vehicleArt, left, top, sourceWidth, sourceHeight,
+      pass.x - camera - shape.width / 2, ground - shape.height, shape.width, shape.height);
+  }
   const position = scene.pickup ?? scene.door ?? scene.delivery;
   const prompt = scene.pickup !== undefined
     ? (carrying ? '' : 'Pick up beer')
     : scene.door !== undefined ? 'Enter building' : scene.delivery !== undefined ? 'Deliver beer' : '';
   if (scene.pickup !== undefined && !carrying) {
-    ctx.drawImage(cargo, scene.pickup - camera - 47, ground - 86, 94, 86);
+    drawCargo(scene.pickup - camera, ground, 94);
   }
-  if (prompt) {
+  if (scene.door !== undefined && near(scene.door)) {
+    ctx.fillStyle = '#092038bd';
+    ctx.fillRect(position - camera - 33, ground - 17, 66, 17);
+    ctx.fillStyle = '#fff';
+    ctx.font = '11px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Enter', position - camera, ground - 5);
+  } else if (prompt && scene.door === undefined) {
     ctx.fillStyle = '#092038';
     ctx.fillRect(position - camera - 74, ground - 125, 148, 26);
     ctx.fillStyle = '#fff';
@@ -173,24 +398,43 @@ function draw() {
     ctx.textAlign = 'center';
     ctx.fillText(prompt, position - camera, ground - 107);
   }
-  const cellWidth = cast.width / 4;
-  const cellHeight = cast.height / 2;
   for (const [position, kind] of scene.obstacles ?? []) {
-    const size = kind === 3 ? 72 : 86;
-    ctx.drawImage(cast, (kind % 4) * cellWidth, Math.floor(kind / 4) * cellHeight,
-      cellWidth, cellHeight, position - camera - size / 2, obstacleY(kind) - size, size, size);
+    const [left, top, sourceWidth, sourceHeight] = obstacleFrames[kind];
+    const size = kind === 3 ? 62 : 76;
+    const spriteWidth = size * sourceWidth / sourceHeight;
+    ctx.drawImage(cast, left, top, sourceWidth, sourceHeight,
+      patrolX(position, kind) - camera - spriteWidth / 2, ground - size - (kind === 3 ? birdLift(position) : 0), spriteWidth, size);
   }
   const moving = active('left') || active('right');
-  const frame = y < ground ? (velocity < 0 ? 4 : 5) : moving ? 1 + Math.floor(clock * 10) % 3 : 0;
+  const frame = y < ground && !riding ? (velocity < 0 ? 4 : 5) : moving ? 1 + Math.floor(clock * 10) % 3 : 0;
   ctx.save();
   ctx.translate(x - camera, y);
   ctx.scale(direction, 1);
   if (invincible && Math.floor(clock * 14) % 2) ctx.globalAlpha = 0.45;
-  ctx.drawImage(player, frame * 362, 0, 362, 724, -27, -84, 54, 108);
+  if (carrying) {
+    const [bodyX, feetY, palmX, palmY] = carryAnchors[frame];
+    ctx.drawImage(carrier, frame * 362, 0, 362, 724,
+      -bodyX * carryScale, -feetY * carryScale, 362 * carryScale, 724 * carryScale);
+    // Flip the pose and its palm position, while leaving the cargo text readable.
+    ctx.scale(direction, 1);
+    drawCargo((palmX - bodyX) * carryScale * direction,
+      (palmY - feetY) * carryScale + 2, 84, direction < 0 ? cargoLeft : cargo);
+  } else {
+    ctx.drawImage(player, frame * 362, 0, 362, 724, -27, -84, 54, 108);
+  }
   ctx.restore();
-  if (carrying) ctx.drawImage(cargo, x - camera - 39, y - 141, 78, 71);
+  const trafficFront = pass?.active ? pass.x - camera - vehicles[pass.vehicle[1]].width / 2 : Infinity;
+  if (trafficFront >= width && trafficFront < width + trafficSpeed * 1.4) {
+    ctx.fillStyle = '#092038';
+    ctx.fillRect(width - 170, 14, 156, 28);
+    ctx.fillStyle = '#ffd563';
+    ctx.textAlign = 'right';
+    ctx.font = 'bold 14px system-ui';
+    ctx.fillText('Traffic from right →', width - 24, 33);
+  }
   const hint = prompt && near(position) ? ` · F / Action: ${prompt}` : '';
-  const line = `${scene.label} · ${level + 1}/${route.length} · Bumps: ${hits}${hint}`;
+  const megaHint = clock < tutorialUntil ? ' · Mega Jump unlocked! Quickly press Jump twice' : '';
+  const line = `${scene.label} · ${level + 1}/${route.length} · Bumps: ${hits}${hint}${megaHint}`;
   if (status.textContent !== line) status.textContent = line;
 }
 function frame(time) {
@@ -202,11 +446,16 @@ function frame(time) {
 }
 
 try {
-  [backgrounds, player, cast, cargo] = await Promise.all([
-    Promise.all(route.map(scene => loadImage(`${pack}/backdrops/${scene.art}.png`))),
+  const neighborhoodArt = loadImage('./assets/residential-variants.png');
+  [backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt] = await Promise.all([
+    Promise.all(route.map(scene => scene.neighborhood === undefined
+      ? loadImage(scene.backdrop ?? `${pack}/backdrops/${scene.art}.png`) : neighborhoodArt)),
     loadImage(`${pack}/sprites/lil-g.png`),
+    loadImage('./assets/lil-g-carry.png'),
     loadImage('./assets/obstacles/obstacle-cast.png'),
-    loadImage('./docs/references/great-monkey-beer-run/beer-cargo/mixed-beer-stack.png'),
+    loadImage('./assets/beer-tray.png'),
+    loadImage('./assets/beer-tray-left.png'),
+    loadImage('./assets/obstacles/residential-vehicles.png'),
   ]);
   start.disabled = false;
   requestAnimationFrame(frame);
