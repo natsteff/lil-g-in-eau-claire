@@ -1,0 +1,74 @@
+{
+  "files": [
+    {
+      "path": "backdrops/apartment.png",
+      "bytes": 2570027,
+      "sha256": "d7c90917eb8ac573710700ac44afa5b2b0204978f6ad46c07791659e66a85ac4"
+    },
+    {
+      "path": "backdrops/bar.png",
+      "bytes": 3057339,
+      "sha256": "8595803066851650943c29af58da461f3aa55317ac483fa76da273838bbc15e2"
+    },
+    {
+      "path": "backdrops/destination.png",
+      "bytes": 2610954,
+      "sha256": "3a881a5330abb977389d236581d791bb2aa2828677675622ae287c63374457ed"
+    },
+    {
+      "path": "backdrops/downtown.png",
+      "bytes": 2973777,
+      "sha256": "9c3f78bc6b6cf0a0438fdcab43f10f2f33050194b40a89b7fa99d547f220257b"
+    },
+    {
+      "path": "backdrops/garage.png",
+      "bytes": 3126976,
+      "sha256": "85c5cc09f23fe21812ef9ce9d7bbfef486f1ceae0514935906f7644c430ab7c9"
+    },
+    {
+      "path": "backdrops/residential-a.png",
+      "bytes": 3259901,
+      "sha256": "5496c89c51bd0fb8295abfe8331dfb60b8421dd5900c24117f9b333dbe5b9e42"
+    },
+    {
+      "path": "backdrops/residential-b.png",
+      "bytes": 3196249,
+      "sha256": "642e0b13a05e4407176fab0ba9dd2e039d44b626b82b4d63274742095ee68c27"
+    },
+    {
+      "path": "sprites/lil-g-fall.png",
+      "bytes": 281494,
+      "sha256": "fc1c5a94f2924eaec68c4ab795873f620c1d1058ff097e62eb8c7c3ad9ceea29"
+    },
+    {
+      "path": "sprites/lil-g-idle.png",
+      "bytes": 280562,
+      "sha256": "10811ed0ca446bd30ae8c9a71c2f0d085bb210d102667e55df36ecb3b98241b7"
+    },
+    {
+      "path": "sprites/lil-g-jump.png",
+      "bytes": 270778,
+      "sha256": "f81841c8a84c52ac2cf20be8826cc4d9ae2d00bd01fcaff20f6ff4c6226c4304"
+    },
+    {
+      "path": "sprites/lil-g-run-1.png",
+      "bytes": 289694,
+      "sha256": "1f8d0993d1ed70651a143d658475a96ca45eca142f2fbbf62b51f3340e5f7211"
+    },
+    {
+      "path": "sprites/lil-g-run-2.png",
+      "bytes": 287384,
+      "sha256": "ce8ab3e87695bb66721fbf7a2b8d1b383edb3c795e309a8d8d294163c6d1d951"
+    },
+    {
+      "path": "sprites/lil-g-run-3.png",
+      "bytes": 287836,
+      "sha256": "660d69d8b9188781c932553d7129f238c9b9528dd65e9b08c88c59ad0541f363"
+    },
+    {
+      "path": "sprites/lil-g.png",
+      "bytes": 1689860,
+      "sha256": "26074810a8d359099ee7dd6487f0975a5aa1576a8dd0bec21bc4fbe61780dbfa"
+    }
+  ]
+}

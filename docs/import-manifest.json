@@ -1,0 +1,144 @@
+{
+  "source_project": "Abu - Game Dev (Great Monkey Beer Run)",
+  "imported_on": "2026-11-03",
+  "files": [
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/README.md",
+      "bytes": 2595,
+      "sha256": "b47ca50293919703b473f7ec22f5a96de0a72b0da9a7a8811d51073d474decbf"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/backdrops/apartment.png",
+      "bytes": 2570027,
+      "sha256": "d7c90917eb8ac573710700ac44afa5b2b0204978f6ad46c07791659e66a85ac4"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/backdrops/bar.png",
+      "bytes": 3057339,
+      "sha256": "8595803066851650943c29af58da461f3aa55317ac483fa76da273838bbc15e2"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/backdrops/destination.png",
+      "bytes": 2610954,
+      "sha256": "3a881a5330abb977389d236581d791bb2aa2828677675622ae287c63374457ed"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/backdrops/downtown.png",
+      "bytes": 2973777,
+      "sha256": "9c3f78bc6b6cf0a0438fdcab43f10f2f33050194b40a89b7fa99d547f220257b"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/backdrops/garage.png",
+      "bytes": 3126976,
+      "sha256": "85c5cc09f23fe21812ef9ce9d7bbfef486f1ceae0514935906f7644c430ab7c9"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/backdrops/residential-a.png",
+      "bytes": 3259901,
+      "sha256": "5496c89c51bd0fb8295abfe8331dfb60b8421dd5900c24117f9b333dbe5b9e42"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/backdrops/residential-b.png",
+      "bytes": 3196249,
+      "sha256": "642e0b13a05e4407176fab0ba9dd2e039d44b626b82b4d63274742095ee68c27"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/extract.gd",
+      "bytes": 665,
+      "sha256": "6f71615d5a33470ec9864be6738aed8582494c8caf9c0ecbe7c2df02c6c795dc"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/manifest.json",
+      "bytes": 2259,
+      "sha256": "477ec9c7a4c64331aa639d803f0ed7421a656a531cb0754e80931ffe1ae96526"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/phaser-example.js",
+      "bytes": 1076,
+      "sha256": "f014ba07d415fb17efe1281f477f171cb5cf55cb61d4026eb088247be20f9089"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/sprites/lil-g-fall.png",
+      "bytes": 281494,
+      "sha256": "fc1c5a94f2924eaec68c4ab795873f620c1d1058ff097e62eb8c7c3ad9ceea29"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/sprites/lil-g-idle.png",
+      "bytes": 280562,
+      "sha256": "10811ed0ca446bd30ae8c9a71c2f0d085bb210d102667e55df36ecb3b98241b7"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/sprites/lil-g-jump.png",
+      "bytes": 270778,
+      "sha256": "f81841c8a84c52ac2cf20be8826cc4d9ae2d00bd01fcaff20f6ff4c6226c4304"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/sprites/lil-g-run-1.png",
+      "bytes": 289694,
+      "sha256": "1f8d0993d1ed70651a143d658475a96ca45eca142f2fbbf62b51f3340e5f7211"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/sprites/lil-g-run-2.png",
+      "bytes": 287384,
+      "sha256": "ce8ab3e87695bb66721fbf7a2b8d1b383edb3c795e309a8d8d294163c6d1d951"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/sprites/lil-g-run-3.png",
+      "bytes": 287836,
+      "sha256": "660d69d8b9188781c932553d7129f238c9b9528dd65e9b08c88c59ad0541f363"
+    },
+    {
+      "path": "assets/great-monkey-beer-run/monkey-phaser-skin/sprites/lil-g.png",
+      "bytes": 1689860,
+      "sha256": "26074810a8d359099ee7dd6487f0975a5aa1576a8dd0bec21bc4fbe61780dbfa"
+    },
+    {
+      "path": "docs/references/great-monkey-beer-run/beer-cargo/mixed-beer-stack.png",
+      "bytes": 2519645,
+      "sha256": "88fe4e348e55c1d1bf7fa2f7f0c002fa08c4839f4315077215e9cfa1698ac3ab"
+    },
+    {
+      "path": "docs/references/great-monkey-beer-run/beer-cargo/unicorn-haze-six-pack.png",
+      "bytes": 2205235,
+      "sha256": "51521808e364b0c4ef2e95a8487231d1b6552629241a7fad44f11293cf8916e8"
+    },
+    {
+      "path": "docs/references/great-monkey-beer-run/title-logo-concept.jpg",
+      "bytes": 242398,
+      "sha256": "7bfb12536d27f692e2a4ca71cda277bf391b62504ff83d6225971ea802f615f2"
+    },
+    {
+      "path": "docs/references/great-monkey-beer-run/early-prototypes/monkey_characters_items_environment_sprites.jpg",
+      "bytes": 727152,
+      "sha256": "5112bf897a42d8dbd3e9b81a8eaac64664b45066494e0c7dda2417cb1f66c5d2",
+      "source": "/Volumes/Ugreen/Chrome Downloads/monkey_beer_run_assets/monkey_characters_items_environment_sprites.jpg",
+      "imported_on": "2026-11-03"
+    },
+    {
+      "path": "docs/references/great-monkey-beer-run/early-prototypes/nana_racer_goat_jungle_truck_sprites.jpg",
+      "bytes": 593715,
+      "sha256": "ae25d7bdaec78c640a431cfbab0d797a30af613b6568f4eac39f2912f823f318",
+      "source": "/Volumes/Ugreen/Chrome Downloads/monkey_beer_run_assets/nana_racer_goat_jungle_truck_sprites.jpg",
+      "imported_on": "2026-11-03"
+    },
+    {
+      "path": "docs/references/great-monkey-beer-run/early-prototypes/unicorn_garage_concepts.jpg",
+      "bytes": 1045933,
+      "sha256": "f07cf8656fb8cf615af8d1e5431ed6eb46a49f5331e65f2082da6c8820710d01",
+      "source": "/Volumes/Ugreen/Chrome Downloads/monkey_beer_run_assets/unicorn_garage_concepts.jpg",
+      "imported_on": "2026-11-03"
+    },
+    {
+      "path": "assets/branding/app-icon-original.png",
+      "bytes": 2185468,
+      "sha256": "ad0d49d52d8b4792e1b3c07b3785a4c7d4b7a9a8972c9b6641bf9c1282b316c9",
+      "imported_on": "2026-11-03"
+    },
+    {
+      "path": "assets/branding/main-logo.png",
+      "bytes": 1702624,
+      "sha256": "6def7ab964658e0d7c227766055a46b9feb86ffd90addfa1d98dfe515d48a877",
+      "imported_on": "2026-11-03"
+    }
+  ]
+}
