@@ -57,6 +57,7 @@ let velocity = 0;
 let direction = 1;
 let carrying = false;
 let moving = false;
+let apartmentIntroMoved = false;
 let hits = 0;
 let invincible = 0;
 let mode = 'title';
@@ -162,6 +163,7 @@ function restartRun() {
   if (start.disabled) return;
   clearInput();
   carrying = false;
+  apartmentIntroMoved = false;
   hits = 0;
   clock = 0;
   megaUnlocked = false;
@@ -319,6 +321,7 @@ function update(dt) {
   if (input.interact) pressed.add('action');
   const move = (Number(active('right')) - Number(active('left'))) || input.move;
   moving = Boolean(move);
+  if (level === 0 && moving) apartmentIntroMoved = true;
   if (move) direction = move;
   const pass = trafficPass(scene, clock);
   if (riding && (!pass?.active || pass.vehicle !== riding)) riding = null;
@@ -493,6 +496,23 @@ function draw() {
     ctx.drawImage(player, frame * 362, 0, 362, 724, -27, -84, 54, 108);
   }
   ctx.restore();
+  if (level === 0 && !apartmentIntroMoved) {
+    const markerX = x - camera;
+    const markerY = y - 105;
+    ctx.fillStyle = '#092038ed';
+    ctx.beginPath();
+    ctx.roundRect(markerX - 62, markerY - 32, 124, 32, 8);
+    ctx.fill();
+    ctx.fillStyle = '#ffd563';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 17px system-ui';
+    ctx.fillText("Meet Lil’ G", markerX, markerY - 10);
+    ctx.beginPath();
+    ctx.moveTo(markerX - 9, markerY + 4);
+    ctx.lineTo(markerX + 9, markerY + 4);
+    ctx.lineTo(markerX, markerY + 17);
+    ctx.fill();
+  }
   const trafficFront = pass?.active ? pass.x - camera - vehicles[pass.vehicle[1]].width / 2 : Infinity;
   if (trafficFront >= width && trafficFront < width + trafficSpeed * 1.4) {
     ctx.fillStyle = '#092038';
@@ -506,7 +526,10 @@ function draw() {
   const hint = prompt && near(position) ? ` · ${mobile ? 'Action' : 'F'}: ${prompt}`
     : scene.pickup !== undefined && !carrying && x > scene.pickup + 62 ? ' · Go back for the beer' : '';
   const megaHint = clock < tutorialUntil ? ' · Mega Jump unlocked! Quickly press Jump twice' : '';
-  const line = `${scene.label} · ${level + 1}/${route.length} · Bumps: ${hits}${hint}${megaHint}`;
+  const intro = level === 0 ? (apartmentIntroMoved
+    ? ' · Guide him downstairs to the garage to pick up his beer delivery →'
+    : ' · Meet Lil’ G') : '';
+  const line = `${scene.label} · ${level + 1}/${route.length} · Bumps: ${hits}${hint}${megaHint}${intro}`;
   if (status.textContent !== line) status.textContent = line;
 }
 function frame(time) {
