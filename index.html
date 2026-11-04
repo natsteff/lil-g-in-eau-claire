@@ -13,7 +13,7 @@
 main{width:min(100%,1100px)} header,nav,.tools{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0}
 .stage{position:relative;background:#000;border:2px solid #eab455;border-radius:12px;overflow:hidden}
 canvas{display:block;width:100%;aspect-ratio:5/2;height:auto} #menu{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;text-align:center;background:#06101be8;padding:12px;overflow:auto}
-#menu[hidden]{display:none} #menu[data-mode="paused"] img{mix-blend-mode:screen} #menu img{width:min(60vw,390px);max-height:45dvh;object-fit:contain}
+#menu[hidden]{display:none} #menu[data-mode="failed"]:not([hidden]){inset:10px 12px auto auto;padding:10px 16px;border-radius:10px;background:#06101bf2} #menu[data-mode="failed"] img{display:none} #menu[data-mode="failed"] p{margin:0 0 8px} #menu[data-mode="paused"] img{mix-blend-mode:screen} #menu img{width:min(60vw,390px);max-height:45dvh;object-fit:contain}
 button,select{font:inherit;color:#fff;background:#203e57;border:1px solid #7b9aae;border-radius:9px;padding:9px 14px;touch-action:none;cursor:pointer}
 #start{background:#efb548;color:#151009} nav button{min-width:54px} small{color:#b8c9d9}
 main,main *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -80,7 +80,7 @@ main.expanded canvas{height:100%}
 <p>On iPhone, open this game in Safari and tap Share → Add to Home Screen → Add. On Android, open it in Chrome and tap ⋮ → Add to Home screen or Install app.</p>
 <p>Open the Lil G in EC icon and turn your phone sideways.</p>
 </details>
-<p id="update-status" role="status">v0.1.8</p>
+<p id="update-status" role="status">v0.1.9</p>
 <label><input id="auto-update" type="checkbox" checked> Automatically check for updates</label>
 <button id="check-updates" type="button">Check for updates</button>
 <button>Done</button>
@@ -88,7 +88,7 @@ main.expanded canvas{height:100%}
 </dialog>
 <div class="stage">
 <canvas id="game" width="960" height="384" aria-label="Lil’ G side-scrolling game"></canvas>
-<section id="menu"><img src="./assets/branding/main-logo.png" alt="The Great Monkey Beer Run — Lil’ G in Eau Claire"><p id="message">Pick up the beer and deliver it across town.</p><div id="loading"><label for="loading-progress">Loading game</label><br><progress id="loading-progress"></progress></div><button id="start" disabled>Start run</button><span id="game-version">v0.1.8</span></section>
+<section id="menu"><img src="./assets/branding/main-logo.png" alt="The Great Monkey Beer Run — Lil’ G in Eau Claire"><p id="message">Pick up the beer and deliver it across town.</p><div id="loading"><label for="loading-progress">Loading game</label><br><progress id="loading-progress"></progress></div><button id="start" disabled>Start run</button><span id="game-version">v0.1.9</span></section>
 <nav aria-label="Game controls">
 <div><div id="touch-arrows"><button data-touch="left" aria-label="Move left">◀</button><button data-touch="right" aria-label="Move right">▶</button></div><div id="touch-stick" role="slider" tabindex="0" aria-label="Movement" aria-valuemin="-100" aria-valuemax="100" hidden></div></div>
 <div><button data-touch="interact">Action</button> <button data-touch="jump">Jump</button></div>
@@ -96,5 +96,5 @@ main.expanded canvas{height:100%}
 </div>
 <small>Move: A/D or arrows · Jump: Space · Action: F · Pause: P · Sound: S · Full screen: V · Restart: R</small>
 </main>
-<script type="module" src="./game.js?v=0.1.8"></script>
+<script type="module" src="./game.js?v=0.1.9"></script>
 </html>

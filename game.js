@@ -80,6 +80,7 @@ const maxStamina = 10;
 let hits = 0;
 let spillAt = null;
 let spillHeight = 0;
+let collapseArt;
 let invincible = 0;
 let mode = 'title';
 // Cover missed taps between controls and in the safe-area margins. The input
@@ -600,60 +601,101 @@ function drawStamina() {
   }
 }
 
-const spillBoxes = [[26, 0], [56, 8], [87, 14], [117, 22]];
-const spillBottles = [[48, 12], [84, 18], [128, 22]];
+// Source outlines in the 460 × 420 reference view of beer-tray.png.
+const spillCases = [
+  [48, [[8,287],[22,274],[115,287],[112,377],[9,360]]],
+  [68, [[115,296],[226,313],[220,392],[112,378]]],
+  [90, [[226,312],[340,306],[337,383],[220,392]]],
+  [114, [[340,317],[453,273],[452,360],[337,384]]],
+  [33, [[18,203],[40,191],[135,211],[130,289],[18,272]]],
+  [67, [[136,212],[257,224],[251,305],[132,287]]],
+  [104, [[258,223],[420,196],[442,199],[441,275],[375,321],[251,302]]],
+  [46, [[40,125],[86,105],[154,128],[151,216],[40,196]]],
+  [78, [[154,130],[272,125],[272,223],[151,213]]],
+  [120, [[274,126],[389,124],[422,134],[421,197],[391,236],[271,222]]],
+  [28, [[86,60],[106,53],[184,57],[184,106],[157,130],[86,118]]],
+  [72, [[185,68],[211,57],[287,65],[290,112],[271,138],[185,123]]],
+  [134, [[287,70],[310,64],[382,69],[381,118],[355,144],[287,131]]],
+];
+const spillBottles = [
+  [62, '#b2d98a', [[120,12],[137,11],[138,24],[143,37],[141,63],[119,61],[118,39],[122,25]]],
+  [101, '#e9ad69', [[203,17],[219,17],[219,29],[225,40],[224,66],[202,63],[201,42],[205,29]]],
+  [145, '#c49bea', [[351,30],[369,30],[367,43],[371,56],[369,79],[348,77],[348,55],[353,42]]],
+];
+const trayScale = 84 / 460;
+const trayImpactTime = 0.32;
+
+function drawTrayPiece(outline, x, y, angle) {
+  const centerX = (Math.min(...outline.map(([px]) => px)) + Math.max(...outline.map(([px]) => px))) / 2;
+  const baseY = Math.max(...outline.map(([, py]) => py));
+  ctx.save();
+  ctx.translate(direction * x, y);
+  ctx.rotate(direction * angle);
+  ctx.scale(trayScale, trayScale);
+  ctx.translate(-centerX, -baseY);
+  ctx.beginPath();
+  outline.forEach(([px, py], i) => i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py));
+  ctx.closePath();
+  ctx.clip();
+  ctx.drawImage(cargo, 0, 0, 460, 420);
+  ctx.restore();
+}
 
 function drawSpill(screenX, ground, elapsed) {
-  const dropTime = 0.32;
-  if (elapsed < dropTime) {
-    const fall = (elapsed / dropTime) ** 2;
-    drawCargo(screenX + direction * (22 + 12 * fall), ground - spillHeight * (1 - fall),
+  if (elapsed < trayImpactTime) {
+    const fall = (elapsed / trayImpactTime) ** 2;
+    drawCargo(screenX + direction * (-12 + 46 * fall), ground - spillHeight * (1 - fall),
       84, direction < 0 ? cargoLeft : cargo);
     return;
   }
-  elapsed -= dropTime;
+  elapsed -= trayImpactTime;
   ctx.save();
   ctx.translate(screenX, ground);
-  ctx.scale(direction, 1);
-  for (const [distance, lift] of spillBoxes) {
-    const progress = Math.min(1, elapsed / (0.58 + distance / 600));
-    ctx.save();
-    ctx.translate(16 + distance * progress, -9 - lift * (1 - progress) - 95 * progress * (1 - progress));
-    ctx.rotate((distance % 3 - 1) * 0.24 * progress);
-    ctx.fillStyle = '#6d3a24';
-    ctx.fillRect(-15, -9, 30, 18);
-    ctx.fillStyle = '#d39b57';
-    ctx.fillRect(-13, -9, 26, 14);
-    ctx.fillStyle = '#fff0bb';
-    ctx.fillRect(-6, -6, 12, 8);
-    ctx.restore();
-  }
-  for (const [distance, lift] of spillBottles) {
-    const progress = Math.min(1, elapsed / (0.85 + distance / 500));
-    ctx.save();
-    ctx.translate(16 + distance * progress, -3 - lift * (1 - progress) - 140 * progress * (1 - progress));
-    if (progress < 1) {
-      ctx.rotate(progress * 8);
-      ctx.fillStyle = '#557d45';
-      ctx.fillRect(-4, -5, 8, 15);
-      ctx.fillRect(-2, -12, 4, 8);
-      ctx.fillStyle = '#f9df98';
-      ctx.fillRect(-4, 0, 8, 4);
+  spillCases.forEach(([distance, outline], i) => {
+    const t = Math.min(1, elapsed / (0.38 + i * 0.024));
+    const xs = outline.map(([px]) => px);
+    const launchX = 34 + ((Math.min(...xs) + Math.max(...xs)) / 2 - 230) * trayScale;
+    const launchY = (420 - Math.max(...outline.map(([, py]) => py))) * trayScale;
+    const travel = 1 - (1 - t) ** 2;
+    const bounce = 4 * t * (1 - t) * (9 + i);
+    drawTrayPiece(outline, launchX + (distance - launchX) * travel,
+      -launchY * (1 - t) - bounce + (i % 3) * 8 * t, (i % 2 ? -1 : 1) * (0.45 + i * 0.11) * Math.sin(t * 2.1));
+  });
+  for (const [distance, color, outline] of spillBottles) {
+    const duration = 0.56 + distance / 450;
+    const t = Math.min(1, elapsed / duration);
+    const bottleX = 30 + (distance - 30) * t;
+    if (t < 1) {
+      drawTrayPiece(outline, bottleX, -59 * (1 - t) - 130 * t * (1 - t), t * 10);
     } else {
-      ctx.fillStyle = '#a8df91';
-      for (let i = 0; i < 5; i++) {
-        const spread = 5 + Math.min(6, (elapsed - 0.85 - distance / 500) * 24);
-        const shardX = (i - 2) * spread;
+      ctx.fillStyle = color;
+      const burst = Math.min(1, (elapsed - duration) / 0.22);
+      for (let i = 0; i < 6; i++) {
+        const shardX = direction * bottleX + (i - 2.5) * (2 + 4 * burst);
+        const shardY = 2 - Math.sin(burst * Math.PI) * (3 + i);
         ctx.beginPath();
-        ctx.moveTo(shardX, 2);
-        ctx.lineTo(shardX + 4, 2);
-        ctx.lineTo(shardX + 1, -3 - i % 3);
+        ctx.moveTo(shardX, shardY);
+        ctx.lineTo(shardX + 3, shardY - 1);
+        ctx.lineTo(shardX + 1, shardY - 4);
         ctx.fill();
       }
     }
-    ctx.restore();
   }
   ctx.restore();
+}
+
+const collapseFrames = [
+  // End time, source bounds, horizontal offset and height above the ground.
+  [0.13, 37, 93, 214, 189, -25, 0],
+  [0.29, 280, 78, 227, 186, -21, 7],
+  [0.49, 534, 123, 224, 159, -16, 0],
+  [Infinity, 788, 160, 282, 122, -13, 0],
+];
+
+function drawCollapse(elapsed) {
+  const [, left, top, wide, tall, offset, lift] = collapseFrames.find(([end]) => elapsed < end);
+  const scale = 0.32;
+  ctx.drawImage(collapseArt, left, top, wide, tall, offset, -tall * scale - lift, wide * scale, tall * scale);
 }
 
 function draw() {
@@ -723,10 +765,7 @@ function draw() {
   const playerScale = level === 0 || scene.delivery !== undefined ? 2 : 1;
   ctx.scale(direction * playerScale, playerScale);
   if (spillAt !== null) {
-    const fall = Math.min(1, (clock - spillAt) / 0.42);
-    ctx.translate(0, -19 * fall);
-    ctx.rotate(fall * Math.PI / 2);
-    ctx.drawImage(player, 0, 0, 362, 724, -27, -84, 54, 108);
+    drawCollapse(clock - spillAt);
   } else if (carrying) {
     if (invincible && Math.floor(clock * 14) % 2) ctx.globalAlpha = 0.45;
     const [bodyX, feetY, palmX, palmY] = carryAnchors[frame];
@@ -852,12 +891,13 @@ try {
     loadImage('./assets/obstacles/downtown-cast.png'),
     loadImage('./assets/celebration-toast.png'),
     loadImage('./assets/lil-g-dance.png'),
+    loadImage('./assets/lil-g-collapse.png'),
     ...backdropUrls.map(loadImage),
   ];
   progress.max = resources.length;
   progress.value = 0;
   let loadedBackdrops;
-  [player, carrier, cast, cargo, cargoLeft, vehicleArt, garageVehicleArt, downtownCast, toastCast, danceArt, ...loadedBackdrops] = await Promise.all(
+  [player, carrier, cast, cargo, cargoLeft, vehicleArt, garageVehicleArt, downtownCast, toastCast, danceArt, collapseArt, ...loadedBackdrops] = await Promise.all(
     resources.map(async resource => {
       const art = await resource;
       progress.value += 1;
