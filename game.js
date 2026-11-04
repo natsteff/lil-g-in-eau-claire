@@ -242,11 +242,23 @@ for (const control of controls) control.addEventListener('input', () => {
   } catch {}
 });
 let resumeAfterSettings = false;
-document.querySelector('#options').onclick = () => {
+const menuButton = document.querySelector('#options');
+function openSettings() {
+  if (settings.open) return;
   resumeAfterSettings = mode === 'play';
   if (resumeAfterSettings) togglePause();
   settings.showModal();
-};
+}
+menuButton.onclick = openSettings;
+// Touch activation must not depend on Safari synthesizing a click after
+// the gameplay gesture guards have handled the same tap.
+menuButton.addEventListener('pointerup', event => {
+  if (event.pointerType !== 'touch') return;
+  const bounds = menuButton.getBoundingClientRect();
+  if (event.clientX < bounds.left || event.clientX > bounds.right
+      || event.clientY < bounds.top || event.clientY > bounds.bottom) return;
+  openSettings();
+});
 settings.addEventListener('close', () => {
   if (resumeAfterSettings && mode === 'paused') play();
 });

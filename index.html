@@ -30,7 +30,7 @@ nav button[data-held],#touch-arrows[data-sprint="true"] button[data-held]{backgr
 #touch-stick[data-style="stick"]{width:85px;height:85px;border-radius:50%}
 #touch-stick::after{content:"";position:absolute;left:50%;top:50%;width:36px;height:36px;border-radius:50%;background:#9dc6cd;transform:translate(calc(-50% + var(--stick-x,0px)),calc(-50% + var(--stick-y,0px)))}
 #menu{z-index:1}
-#options{touch-action:manipulation}
+#options{touch-action:manipulation;flex:none;min-width:44px;min-height:44px}
 dialog{color:#fff;background:#10263a;border:1px solid #96bdc9;border-radius:12px;max-height:90dvh;max-width:90vw}
 dialog::backdrop{background:#000a}
 dialog label{display:block;margin:9px 0}
@@ -38,7 +38,7 @@ dialog select{color-scheme:dark;max-width:100%;touch-action:manipulation}
 fieldset:disabled{opacity:.55}
 #layout-description,#arrow-note{color:#b8c9d9}
 html.touch-play-locked,html.touch-play-locked body{overflow:hidden;overscroll-behavior:none}
-main.touch-mode.expanded{position:relative;inset:auto;margin:0;width:var(--play-width,100%);height:var(--play-height,100dvh);transform:translate(var(--play-left,0px),var(--play-top,0px))}
+main.touch-mode.expanded{position:relative;inset:auto;margin:0;width:var(--play-width,100%);height:var(--play-height,100dvh);left:var(--play-left,0px);top:var(--play-top,0px)}
 html.touch-play-locked body{display:block;padding:0}
 main:fullscreen{width:100%;height:100%;display:flex;flex-direction:column;background:#091727}
 main.expanded{position:fixed;inset:0;width:100%;height:100dvh;display:flex;flex-direction:column;background:#091727}
@@ -49,7 +49,7 @@ main.expanded canvas{height:100%}
 @media (pointer:coarse){
   body{padding:0;overflow:hidden}
   main{width:100%;height:100dvh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);display:flex;flex-direction:column}
-  header{margin:0;padding:3px 8px;font-size:13px}
+  header{flex:none;margin:0;padding:3px 8px;font-size:13px}
   header button{min-height:40px}
   .stage{flex:1;min-height:0;border:0;border-radius:0}
   canvas{height:100%}
@@ -76,7 +76,7 @@ main.expanded canvas{height:100%}
 <p>On iPhone, open this game in Safari and tap Share → Add to Home Screen → Add. On Android, open it in Chrome and tap ⋮ → Add to Home screen or Install app.</p>
 <p>Open the Lil G in EC icon and turn your phone sideways.</p>
 </details>
-<p id="update-status" role="status">v0.1.4</p>
+<p id="update-status" role="status">v0.1.5</p>
 <label><input id="auto-update" type="checkbox" checked> Automatically check for updates</label>
 <button id="check-updates" type="button">Check for updates</button>
 <button>Done</button>
@@ -84,7 +84,7 @@ main.expanded canvas{height:100%}
 </dialog>
 <div class="stage">
 <canvas id="game" width="960" height="384" aria-label="Lil’ G side-scrolling game"></canvas>
-<section id="menu"><img src="./assets/branding/main-logo.png" alt="The Great Monkey Beer Run — Lil’ G in Eau Claire"><p id="message">Pick up the beer and deliver it across town.</p><div id="loading"><label for="loading-progress">Loading game</label><br><progress id="loading-progress"></progress></div><button id="start" disabled>Start run</button><span id="game-version">v0.1.4</span></section>
+<section id="menu"><img src="./assets/branding/main-logo.png" alt="The Great Monkey Beer Run — Lil’ G in Eau Claire"><p id="message">Pick up the beer and deliver it across town.</p><div id="loading"><label for="loading-progress">Loading game</label><br><progress id="loading-progress"></progress></div><button id="start" disabled>Start run</button><span id="game-version">v0.1.5</span></section>
 <nav aria-label="Game controls">
 <div><div id="touch-arrows"><button data-touch="left" aria-label="Move left">◀</button><button data-touch="right" aria-label="Move right">▶</button></div><div id="touch-stick" role="slider" tabindex="0" aria-label="Movement" aria-valuemin="-100" aria-valuemax="100" hidden></div></div>
 <div><button data-touch="interact">Action</button> <button data-touch="jump">Jump</button></div>
@@ -92,5 +92,5 @@ main.expanded canvas{height:100%}
 </div>
 <small>Move: A/D or arrows · Jump: Space · Action: F · Pause: P · Sound: S · Full screen: V · Restart: R</small>
 </main>
-<script type="module" src="./game.js?v=0.1.4"></script>
+<script type="module" src="./game.js?v=0.1.5"></script>
 </html>
