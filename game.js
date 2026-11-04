@@ -76,7 +76,10 @@ const pedestrianPasses = new Map();
 let repeatPedestriansAt = null;
 let pedestrianEncore = false;
 let apartmentIntroMoved = false;
+const maxStamina = 10;
 let hits = 0;
+let spillAt = null;
+let spillHeight = 0;
 let invincible = 0;
 let mode = 'title';
 // Cover missed taps between controls and in the safe-area margins. The input
@@ -189,6 +192,7 @@ function restartRun() {
   carrying = false;
   apartmentIntroMoved = false;
   hits = 0;
+  spillAt = null;
   clock = 0;
   megaUnlocked = false;
   tutorialUntil = 0;
@@ -396,9 +400,20 @@ function bump() {
   invincible = 1.1;
   riding = null;
   x = Math.max(18, x - 45);
+  if (hits === maxStamina) {
+    spillAt = clock;
+    spillHeight = groundY() - y + 60;
+    touch.enabled = false;
+    clearInput();
+  }
 }
 function update(dt) {
   clock += dt;
+  if (spillAt !== null) {
+    y = Math.min(groundY(), y + 420 * dt);
+    if (clock - spillAt >= 1.85) showMenu('failed', 'Lil’ G ran out of stamina. Run failed!', 'Try again');
+    return;
+  }
   if (celebrationAt !== null) {
     pressed.clear();
     return;
@@ -459,6 +474,7 @@ function update(dt) {
     const bottom = ground - birdLift(position, kind);
     if (!invincible && Math.abs(x - obstacle) < 33 && y > bottom - 55 && y - 55 < bottom) bump();
   }
+  if (spillAt !== null) return;
   if (pressed.has('action')) {
     if (near(scene.pickup)) carrying = true;
     if (near(scene.door)) enter(level + 1);
@@ -571,6 +587,75 @@ function drawCelebration(ground) {
   if (status.textContent !== caption) status.textContent = caption;
 }
 
+function drawStamina() {
+  ctx.fillStyle = '#092038ed';
+  ctx.fillRect(14, 14, 170, 44);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 14px system-ui';
+  ctx.textAlign = 'left';
+  ctx.fillText(`Stamina ${maxStamina - hits}/${maxStamina}`, 22, 32);
+  for (let i = 0; i < maxStamina; i++) {
+    ctx.fillStyle = i < maxStamina - hits ? (hits >= 7 ? '#ff8873' : '#ffd563') : '#3b5366';
+    ctx.fillRect(22 + 15 * i, 39, 13, 11);
+  }
+}
+
+const spillBoxes = [[26, 0], [56, 8], [87, 14], [117, 22]];
+const spillBottles = [[48, 12], [84, 18], [128, 22]];
+
+function drawSpill(screenX, ground, elapsed) {
+  const dropTime = 0.32;
+  if (elapsed < dropTime) {
+    const fall = (elapsed / dropTime) ** 2;
+    drawCargo(screenX + direction * (22 + 12 * fall), ground - spillHeight * (1 - fall),
+      84, direction < 0 ? cargoLeft : cargo);
+    return;
+  }
+  elapsed -= dropTime;
+  ctx.save();
+  ctx.translate(screenX, ground);
+  ctx.scale(direction, 1);
+  for (const [distance, lift] of spillBoxes) {
+    const progress = Math.min(1, elapsed / (0.58 + distance / 600));
+    ctx.save();
+    ctx.translate(16 + distance * progress, -9 - lift * (1 - progress) - 95 * progress * (1 - progress));
+    ctx.rotate((distance % 3 - 1) * 0.24 * progress);
+    ctx.fillStyle = '#6d3a24';
+    ctx.fillRect(-15, -9, 30, 18);
+    ctx.fillStyle = '#d39b57';
+    ctx.fillRect(-13, -9, 26, 14);
+    ctx.fillStyle = '#fff0bb';
+    ctx.fillRect(-6, -6, 12, 8);
+    ctx.restore();
+  }
+  for (const [distance, lift] of spillBottles) {
+    const progress = Math.min(1, elapsed / (0.85 + distance / 500));
+    ctx.save();
+    ctx.translate(16 + distance * progress, -3 - lift * (1 - progress) - 140 * progress * (1 - progress));
+    if (progress < 1) {
+      ctx.rotate(progress * 8);
+      ctx.fillStyle = '#557d45';
+      ctx.fillRect(-4, -5, 8, 15);
+      ctx.fillRect(-2, -12, 4, 8);
+      ctx.fillStyle = '#f9df98';
+      ctx.fillRect(-4, 0, 8, 4);
+    } else {
+      ctx.fillStyle = '#a8df91';
+      for (let i = 0; i < 5; i++) {
+        const spread = 5 + Math.min(6, (elapsed - 0.85 - distance / 500) * 24);
+        const shardX = (i - 2) * spread;
+        ctx.beginPath();
+        ctx.moveTo(shardX, 2);
+        ctx.lineTo(shardX + 4, 2);
+        ctx.lineTo(shardX + 1, -3 - i % 3);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
 function draw() {
   const scene = route[level];
   const ground = groundY();
@@ -637,8 +722,13 @@ function draw() {
   ctx.translate(x - camera, y);
   const playerScale = level === 0 || scene.delivery !== undefined ? 2 : 1;
   ctx.scale(direction * playerScale, playerScale);
-  if (invincible && Math.floor(clock * 14) % 2) ctx.globalAlpha = 0.45;
-  if (carrying) {
+  if (spillAt !== null) {
+    const fall = Math.min(1, (clock - spillAt) / 0.42);
+    ctx.translate(0, -19 * fall);
+    ctx.rotate(fall * Math.PI / 2);
+    ctx.drawImage(player, 0, 0, 362, 724, -27, -84, 54, 108);
+  } else if (carrying) {
+    if (invincible && Math.floor(clock * 14) % 2) ctx.globalAlpha = 0.45;
     const [bodyX, feetY, palmX, palmY] = carryAnchors[frame];
     ctx.drawImage(carrier, frame * 362, 0, 362, 724,
       -bodyX * carryScale, -feetY * carryScale, 362 * carryScale, 724 * carryScale);
@@ -647,9 +737,12 @@ function draw() {
     drawCargo((palmX - bodyX) * carryScale * direction,
       (palmY - feetY) * carryScale + 2, 84 / playerScale, direction < 0 ? cargoLeft : cargo);
   } else {
+    if (invincible && Math.floor(clock * 14) % 2) ctx.globalAlpha = 0.45;
     ctx.drawImage(player, frame * 362, 0, 362, 724, -27, -84, 54, 108);
   }
   ctx.restore();
+  if (spillAt !== null && carrying) drawSpill(x - camera, ground, clock - spillAt);
+  drawStamina();
   if (level === 0 && !apartmentIntroMoved) {
     const markerX = x - camera;
     const markerY = y - 174;
@@ -695,7 +788,7 @@ function draw() {
   const intro = level === 0 ? (apartmentIntroMoved
     ? ' · Guide him downstairs to Unicorn Beer Distribution to pick up his beer delivery →'
     : ' · Meet Lil’ G') : '';
-  const line = `${scene.label} · ${level + 1}/${route.length} · Bumps: ${hits}${hint}${intro}`;
+  const line = `${scene.label} · ${level + 1}/${route.length} · Stamina: ${maxStamina - hits}/${maxStamina}${hint}${intro}`;
   if (status.textContent !== line) status.textContent = line;
 }
 function frame(time) {

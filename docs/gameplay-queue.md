@@ -27,3 +27,9 @@ After pickup, a quick second press of Space during a jump triggers a higher jump
 ## Capture mobile and desktop screenshots
 
 **Queued.** Capture screenshots of the game on mobile and desktop. The scenes and final subset to keep are TBD.
+
+## Add a stamina bar and a beer spill on failure
+
+**Implemented in v0.1.8.** Lil’ G starts each run with a full stamina bar. Each damaging collision takes away one of ten hits’ worth of stamina. The tenth hit empties the bar and triggers the failure sequence.
+
+Lil’ G falls over from exhaustion, and the beer stack crashes onto the ground and separates into individual boxes. Some bottles spill out and shatter. The spill ends the run in failure.
