@@ -1,3 +1,5 @@
+import { installDialogRotationRecovery } from './src/dialog-rotation.mjs';
+import { installTouchViewport } from './src/touch-viewport.mjs';
 import { checkForUpdate } from './src/updates.mjs?v=0.1.1';
 import { touch } from './src/touch.mjs';
 const canvas = document.querySelector('#game');
@@ -96,6 +98,7 @@ function updateFullscreen() {
   const expanded = Boolean(document.fullscreenElement) || shell.classList.contains('expanded');
   fullscreen.textContent = expanded ? 'Exit full screen' : 'Full screen';
   fullscreen.setAttribute('aria-pressed', String(expanded));
+  touchViewport.sync();
 }
 async function toggleFullscreen() {
   if (document.fullscreenElement) {
@@ -213,6 +216,12 @@ try {
 function applyControls() {
   touch.clear();
   touch.style = layout.value;
+  document.querySelector('#arrow-settings').disabled = layout.value !== 'default';
+  document.querySelector('#layout-description').textContent = {
+    default: 'Left / right arrows',
+    slider: 'Slide · edges sprint',
+    stick: 'Circle · left/right sprint',
+  }[layout.value];
   touch.quickSprintEnabled = quick.checked;
   const stick = document.getElementById('touch-stick');
   stick.hidden = layout.value === 'default';
@@ -240,7 +249,16 @@ settings.addEventListener('close', () => {
   if (resumeAfterSettings && mode === 'paused') play();
 });
 shell.addEventListener('contextmenu', event => event.preventDefault());
-window.matchMedia('(orientation: landscape)').addEventListener('change', clearInput);
+const mobile = matchMedia('(pointer: coarse)').matches
+  || matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+shell.classList.toggle('touch-mode', mobile);
+shell.classList.toggle('expanded', mobile);
+const touchViewport = installTouchViewport(shell, { onCancel: clearInput, onResize: resizeCanvas });
+installDialogRotationRecovery(shell, {
+  onCancel: clearInput,
+  onSettled: () => { touchViewport.sync(); resizeCanvas(); },
+});
+updateFullscreen();
 
 function patrolX(anchor, kind) {
   return anchor + Math.sin(clock * (1.15 + kind * 0.12) + anchor) * (kind === 3 ? 90 : 65);
@@ -562,10 +580,10 @@ try {
   );
   const byUrl = new Map(backdropUrls.map((url, index) => [url, loadedBackdrops[index]]));
   backgrounds = route.map(scene => byUrl.get(backdropUrl(scene)));
-  progress.hidden = true;
+  progress.parentElement.hidden = true;
   start.disabled = false;
   requestAnimationFrame(frame);
 } catch (error) {
-  progress.hidden = true;
+  progress.parentElement.hidden = true;
   message.textContent = `Could not load game art: ${error.message}`;
 }

@@ -2,6 +2,7 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lil G in EC">
 <meta name="theme-color" content="#091727">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -13,7 +14,7 @@ main{width:min(100%,1100px)} header,nav,.tools{display:flex;justify-content:spac
 .stage{position:relative;background:#000;border:2px solid #eab455;border-radius:12px;overflow:hidden}
 canvas{display:block;width:100%;aspect-ratio:5/2;height:auto} #menu{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;text-align:center;background:#06101be8;padding:12px;overflow:auto}
 #menu[hidden]{display:none} #menu[data-mode="paused"] img{mix-blend-mode:screen} #menu img{width:min(60vw,390px);max-height:45dvh;object-fit:contain}
-button{font:inherit;color:#fff;background:#203e57;border:1px solid #7b9aae;border-radius:9px;padding:9px 14px;touch-action:none;cursor:pointer}
+button,select{font:inherit;color:#fff;background:#203e57;border:1px solid #7b9aae;border-radius:9px;padding:9px 14px;touch-action:none;cursor:pointer}
 #start{background:#efb548;color:#151009} nav button{min-width:54px} small{color:#b8c9d9}
 main,main *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .tools{flex-wrap:wrap;justify-content:flex-start}
@@ -33,6 +34,12 @@ nav button[data-held],#touch-arrows[data-sprint="true"] button[data-held]{backgr
 dialog{color:#fff;background:#10263a;border:1px solid #96bdc9;border-radius:12px;max-height:90dvh;max-width:90vw}
 dialog::backdrop{background:#000a}
 dialog label{display:block;margin:9px 0}
+dialog select{color-scheme:dark;max-width:100%;touch-action:manipulation}
+fieldset:disabled{opacity:.55}
+#layout-description,#arrow-note{color:#b8c9d9}
+html.touch-play-locked,html.touch-play-locked body{overflow:hidden;overscroll-behavior:none}
+main.touch-mode.expanded{position:relative;inset:auto;margin:0;width:var(--play-width,100%);height:var(--play-height,100dvh);transform:translate(var(--play-left,0px),var(--play-top,0px))}
+html.touch-play-locked body{display:block;padding:0}
 main:fullscreen{width:100%;height:100%;display:flex;flex-direction:column;background:#091727}
 main.expanded{position:fixed;inset:0;width:100%;height:100dvh;display:flex;flex-direction:column;background:#091727}
 main:fullscreen .stage{flex:1;min-height:0}
@@ -58,10 +65,18 @@ main.expanded canvas{height:100%}
 <div class="tools"><button id="sound" type="button" aria-pressed="true">Sound: On</button><button id="fullscreen" type="button" aria-pressed="false">Full screen</button><button id="pause" type="button">Pause</button><button id="restart" type="button" disabled>Restart</button></div>
 <h3>Customize controls</h3>
 <label>Layout <select id="layout"><option value="default">Left / right arrows</option><option value="slider">Sliding Speed Runner</option><option value="stick">Game Stick</option></select></label>
+<p id="layout-description"></p>
+<p id="arrow-note">Spacing, larger arrows, and double-tap sprint apply only to the default arrows.</p>
+<fieldset id="arrow-settings" aria-describedby="arrow-note"><legend>Arrow options</legend>
 <label>Arrow spacing <input id="spacing" type="range" min="1" max="5" value="2"></label>
 <label><input id="large" type="checkbox"> Larger arrows</label>
 <label><input id="quick" type="checkbox"> Double-tap and hold to sprint</label>
-<p id="update-status" role="status">v0.1.2</p>
+</fieldset>
+<details><summary>How to add as an app</summary>
+<p>On iPhone, open this game in Safari and tap Share → Add to Home Screen → Add. On Android, open it in Chrome and tap ⋮ → Add to Home screen or Install app.</p>
+<p>Open the Lil G in EC icon and turn your phone sideways.</p>
+</details>
+<p id="update-status" role="status">v0.1.3</p>
 <label><input id="auto-update" type="checkbox" checked> Automatically check for updates</label>
 <button id="check-updates" type="button">Check for updates</button>
 <button>Done</button>
@@ -69,7 +84,7 @@ main.expanded canvas{height:100%}
 </dialog>
 <div class="stage">
 <canvas id="game" width="960" height="384" aria-label="Lil’ G side-scrolling game"></canvas>
-<section id="menu"><img src="./assets/branding/main-logo.png" alt="The Great Monkey Beer Run — Lil’ G in Eau Claire"><p id="message">Pick up the beer and deliver it across town.</p><progress id="loading-progress" aria-label="Loading game"></progress><button id="start" disabled>Start run</button><span id="game-version">v0.1.2</span></section>
+<section id="menu"><img src="./assets/branding/main-logo.png" alt="The Great Monkey Beer Run — Lil’ G in Eau Claire"><p id="message">Pick up the beer and deliver it across town.</p><div id="loading"><label for="loading-progress">Loading game</label><br><progress id="loading-progress"></progress></div><button id="start" disabled>Start run</button><span id="game-version">v0.1.3</span></section>
 <nav aria-label="Game controls">
 <div><div id="touch-arrows"><button data-touch="left" aria-label="Move left">◀</button><button data-touch="right" aria-label="Move right">▶</button></div><div id="touch-stick" role="slider" tabindex="0" aria-label="Movement" aria-valuemin="-100" aria-valuemax="100" hidden></div></div>
 <div><button data-touch="interact">Action</button> <button data-touch="jump">Jump</button></div>
@@ -77,5 +92,5 @@ main.expanded canvas{height:100%}
 </div>
 <small>Move: A/D or arrows · Jump: Space · Action: F · Pause: P · Sound: S · Full screen: V · Restart: R</small>
 </main>
-<script type="module" src="./game.js?v=0.1.2"></script>
+<script type="module" src="./game.js?v=0.1.3"></script>
 </html>
