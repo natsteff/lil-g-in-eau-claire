@@ -185,7 +185,6 @@ function enter(index) {
   y = groundY();
   velocity = 0;
   direction = 1;
-  invincible = 0;
 }
 function restartRun() {
   if (start.disabled) return;
@@ -193,6 +192,7 @@ function restartRun() {
   carrying = false;
   apartmentIntroMoved = false;
   hits = 0;
+  invincible = 0;
   spillAt = null;
   clock = 0;
   megaUnlocked = false;
@@ -397,6 +397,7 @@ function birdLift(anchor, kind) {
   return 122 - dive * 105;
 }
 function bump() {
+  if (invincible > 0 || spillAt !== null) return;
   hits += 1;
   invincible = 1.1;
   riding = null;
@@ -464,7 +465,7 @@ function update(dt) {
       riding = vehicle;
       y = top;
       velocity = 0;
-    } else if (overlaps && riding !== vehicle && !invincible && y > top + 2 && y - 48 < ground) {
+    } else if (overlaps && riding !== vehicle && y > top + 2 && y - 48 < ground) {
       bump();
     }
   }
@@ -473,7 +474,7 @@ function update(dt) {
     const obstacle = obstacleX(scene, position, kind);
     if (obstacle === null) continue;
     const bottom = ground - birdLift(position, kind);
-    if (!invincible && Math.abs(x - obstacle) < 33 && y > bottom - 55 && y - 55 < bottom) bump();
+    if (Math.abs(x - obstacle) < 33 && y > bottom - 55 && y - 55 < bottom) bump();
   }
   if (spillAt !== null) return;
   if (pressed.has('action')) {
@@ -762,7 +763,7 @@ function draw() {
   const frame = y < ground && !riding ? (velocity < 0 ? 4 : 5) : moving ? 1 + Math.floor(clock * 10) % 3 : 0;
   ctx.save();
   ctx.translate(x - camera, y);
-  const playerScale = level === 0 || scene.delivery !== undefined ? 2 : 1;
+  const playerScale = level === 0 ? 1.5 : scene.delivery !== undefined ? 2 : 1;
   ctx.scale(direction * playerScale, playerScale);
   if (spillAt !== null) {
     drawCollapse(clock - spillAt);
@@ -784,7 +785,7 @@ function draw() {
   drawStamina();
   if (level === 0 && !apartmentIntroMoved) {
     const markerX = x - camera;
-    const markerY = y - 174;
+    const markerY = y - 84 * playerScale - 6;
     ctx.fillStyle = '#092038ed';
     ctx.beginPath();
     ctx.roundRect(markerX - 62, markerY - 32, 124, 32, 8);
