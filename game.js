@@ -1,3 +1,4 @@
+import { checkForUpdate } from './src/updates.mjs?v=0.1.1';
 import { touch } from './src/touch.mjs';
 const canvas = document.querySelector('#game');
 const ctx = canvas.getContext('2d');
@@ -5,6 +6,12 @@ const status = document.querySelector('#status');
 const menu = document.querySelector('#menu');
 const message = document.querySelector('#message');
 const start = document.querySelector('#start');
+const progress = document.querySelector('#loading-progress');
+const stage = document.querySelector('.stage');
+stage.addEventListener('dblclick', event => event.preventDefault());
+stage.addEventListener('touchend', event => {
+  if (!event.target.closest('button, #touch-stick')) event.preventDefault();
+}, { passive: false });
 const restart = document.querySelector('#restart');
 const pause = document.querySelector('#pause');
 const sound = document.querySelector('#sound');
@@ -147,7 +154,7 @@ function enter(index) {
   invincible = 0;
 }
 function restartRun() {
-  if (start.disabled) return;
+  if (start.disabled || mode === 'loading') return;
   clearInput();
   carrying = false;
   hits = 0;
@@ -339,14 +346,14 @@ function update(dt) {
   }
   if (pressed.has('action')) {
     if (near(scene.pickup)) carrying = true;
-    if (near(scene.door)) enter(level + 1);
+    if (near(scene.door)) void loadNextLevel();
     if (near(scene.delivery)) {
       carrying = false;
       showMenu('done', `Beer delivered! Bumps along the way: ${hits}.`, 'Run again');
     }
   }
   if (x >= scene.length && scene.door === undefined && scene.delivery === undefined) {
-    if (scene.pickup === undefined || carrying) enter(level + 1);
+    if (scene.pickup === undefined || carrying) void loadNextLevel();
     else x = scene.length - 36;
   }
   pressed.clear();
@@ -490,20 +497,109 @@ function frame(time) {
   requestAnimationFrame(frame);
 }
 
+const backgroundLoads = new Map();
+function loadBackdrop(index) {
+  const scene = route[index];
+  const url = scene.neighborhood !== undefined ? './assets/residential-variants.png'
+    : scene.backdrop ?? `${pack}/backdrops/${scene.art}.png`;
+  if (!backgroundLoads.has(url)) {
+    backgroundLoads.set(url, loadImage(url).catch(error => {
+      backgroundLoads.delete(url);
+      throw error;
+    }));
+  }
+  return backgroundLoads.get(url);
+}
+async function loadNextLevel() {
+  const next = level + 1;
+  if (backgrounds[next]) {
+    enter(next);
+    return;
+  }
+  showMenu('loading', `Loading ${route[next].label}…`, 'Loading…');
+  restart.disabled = true;
+  start.hidden = true;
+  progress.hidden = false;
+  progress.setAttribute('aria-label', 'Loading level');
+  progress.removeAttribute('value');
+  try {
+    backgrounds[next] = await loadBackdrop(next);
+    enter(next);
+    play();
+  } catch {
+    showMenu('load-error', 'Could not load the next level. Check your connection and try again.', 'Retry level');
+  } finally {
+    start.hidden = false;
+    progress.hidden = true;
+    restart.disabled = false;
+  }
+}
+const originalStart = start.onclick;
+start.onclick = () => {
+  if (mode === 'load-error') void loadNextLevel();
+  else originalStart();
+};
+
+const updateToggle = document.querySelector('#auto-update');
+const updateStatus = document.querySelector('#update-status');
+const updateButton = document.querySelector('#check-updates');
+const version = document.querySelector('#game-version').textContent.slice(1);
+try { updateToggle.checked = localStorage.getItem('lil-g.auto-update') !== 'false'; } catch {}
+let lastUpdateCheck = 0;
+async function checkUpdates(manual = false) {
+  if (updateButton.disabled || (!manual && (!updateToggle.checked || Date.now() - lastUpdateCheck < 10000))) return;
+  lastUpdateCheck = Date.now();
+  updateButton.disabled = true;
+  updateStatus.textContent = `v${version} · Checking…`;
+  let storage;
+  try { storage = sessionStorage; } catch {}
+  const result = await checkForUpdate({
+    current: version, url: location.href, storage, manual,
+    navigate: url => location.replace(url),
+  });
+  const messages = {
+    updating: 'Updating…', current: 'Up to date',
+    stale: 'Update found. Try checking again.', unavailable: 'Could not check. Try again online.',
+  };
+  updateStatus.textContent = `v${version} · ${messages[result]}`;
+  updateButton.disabled = result === 'updating';
+}
+updateToggle.onchange = () => {
+  try { localStorage.setItem('lil-g.auto-update', String(updateToggle.checked)); } catch {}
+  if (updateToggle.checked) void checkUpdates(true);
+};
+updateButton.onclick = () => void checkUpdates(true);
+window.addEventListener('pageshow', () => void checkUpdates());
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) void checkUpdates();
+});
+void checkUpdates();
+
 try {
-  const neighborhoodArt = loadImage('./assets/residential-variants.png');
-  [backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt] = await Promise.all([
-    Promise.all(route.map(scene => scene.neighborhood === undefined
-      ? loadImage(scene.backdrop ?? `${pack}/backdrops/${scene.art}.png`) : neighborhoodArt)),
+  const resources = [
+    loadBackdrop(0),
     loadImage(`${pack}/sprites/lil-g.png`),
     loadImage('./assets/lil-g-carry.png'),
     loadImage('./assets/obstacles/obstacle-cast.png'),
     loadImage('./assets/beer-tray.png'),
     loadImage('./assets/beer-tray-left.png'),
     loadImage('./assets/obstacles/residential-vehicles.png'),
-  ]);
+  ];
+  progress.max = resources.length;
+  progress.value = 0;
+  let apartment;
+  [apartment, player, carrier, cast, cargo, cargoLeft, vehicleArt] = await Promise.all(
+    resources.map(async resource => {
+      const art = await resource;
+      progress.value += 1;
+      return art;
+    }),
+  );
+  backgrounds = [apartment];
+  progress.hidden = true;
   start.disabled = false;
   requestAnimationFrame(frame);
 } catch (error) {
+  progress.hidden = true;
   message.textContent = `Could not load game art: ${error.message}`;
 }
