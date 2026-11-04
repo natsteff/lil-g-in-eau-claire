@@ -23,3 +23,7 @@ After pickup, a quick second press of Space during a jump triggers a higher jump
 ## Give the seagull a swooping patrol
 
 **Implemented in the local prototype.** Keep ground enemies aligned with Lil’ G’s walking surface. The seagull is the exception. It normally flies above him, patrols left and right, and periodically swoops down into his path before climbing again. Keep its collision area aligned with the visible bird throughout the swoop.
+
+## Capture mobile and desktop screenshots
+
+**Queued.** Capture screenshots of the game on mobile and desktop. The scenes and final subset to keep are TBD.

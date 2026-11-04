@@ -7,11 +7,6 @@ const menu = document.querySelector('#menu');
 const message = document.querySelector('#message');
 const start = document.querySelector('#start');
 const progress = document.querySelector('#loading-progress');
-const stage = document.querySelector('.stage');
-stage.addEventListener('dblclick', event => event.preventDefault());
-stage.addEventListener('touchend', event => {
-  if (!event.target.closest('button, #touch-stick')) event.preventDefault();
-}, { passive: false });
 const restart = document.querySelector('#restart');
 const pause = document.querySelector('#pause');
 const sound = document.querySelector('#sound');
@@ -63,6 +58,11 @@ let moving = false;
 let hits = 0;
 let invincible = 0;
 let mode = 'title';
+// Cover missed taps between controls and in the safe-area margins. The input
+// module reads pointer events, so cancelling touchend does not swallow jumps.
+document.addEventListener('touchend', event => {
+  if (mode === 'play' && event.cancelable && !event.target.closest('#options')) event.preventDefault();
+}, { capture: true, passive: false });
 let clock = 0;
 let previousTime = 0;
 const held = new Set();
@@ -120,6 +120,7 @@ document.addEventListener('fullscreenchange', updateFullscreen);
 
 function showMenu(next, copy, label) {
   mode = next;
+  document.documentElement.classList.remove('playing');
   touch.enabled = false;
   menu.dataset.mode = next;
   syncMusic();
@@ -130,6 +131,7 @@ function showMenu(next, copy, label) {
 }
 function play() {
   mode = 'play';
+  document.documentElement.classList.add('playing');
   touch.enabled = true;
   restart.disabled = false;
   syncMusic();
@@ -154,7 +156,7 @@ function enter(index) {
   invincible = 0;
 }
 function restartRun() {
-  if (start.disabled || mode === 'loading') return;
+  if (start.disabled) return;
   clearInput();
   carrying = false;
   hits = 0;
@@ -346,14 +348,14 @@ function update(dt) {
   }
   if (pressed.has('action')) {
     if (near(scene.pickup)) carrying = true;
-    if (near(scene.door)) void loadNextLevel();
+    if (near(scene.door)) enter(level + 1);
     if (near(scene.delivery)) {
       carrying = false;
       showMenu('done', `Beer delivered! Bumps along the way: ${hits}.`, 'Run again');
     }
   }
   if (x >= scene.length && scene.door === undefined && scene.delivery === undefined) {
-    if (scene.pickup === undefined || carrying) void loadNextLevel();
+    if (scene.pickup === undefined || carrying) enter(level + 1);
     else x = scene.length - 36;
   }
   pressed.clear();
@@ -497,48 +499,10 @@ function frame(time) {
   requestAnimationFrame(frame);
 }
 
-const backgroundLoads = new Map();
-function loadBackdrop(index) {
-  const scene = route[index];
-  const url = scene.neighborhood !== undefined ? './assets/residential-variants.png'
+function backdropUrl(scene) {
+  return scene.neighborhood !== undefined ? './assets/residential-variants.png'
     : scene.backdrop ?? `${pack}/backdrops/${scene.art}.png`;
-  if (!backgroundLoads.has(url)) {
-    backgroundLoads.set(url, loadImage(url).catch(error => {
-      backgroundLoads.delete(url);
-      throw error;
-    }));
-  }
-  return backgroundLoads.get(url);
 }
-async function loadNextLevel() {
-  const next = level + 1;
-  if (backgrounds[next]) {
-    enter(next);
-    return;
-  }
-  showMenu('loading', `Loading ${route[next].label}…`, 'Loading…');
-  restart.disabled = true;
-  start.hidden = true;
-  progress.hidden = false;
-  progress.setAttribute('aria-label', 'Loading level');
-  progress.removeAttribute('value');
-  try {
-    backgrounds[next] = await loadBackdrop(next);
-    enter(next);
-    play();
-  } catch {
-    showMenu('load-error', 'Could not load the next level. Check your connection and try again.', 'Retry level');
-  } finally {
-    start.hidden = false;
-    progress.hidden = true;
-    restart.disabled = false;
-  }
-}
-const originalStart = start.onclick;
-start.onclick = () => {
-  if (mode === 'load-error') void loadNextLevel();
-  else originalStart();
-};
 
 const updateToggle = document.querySelector('#auto-update');
 const updateStatus = document.querySelector('#update-status');
@@ -576,26 +540,28 @@ document.addEventListener('visibilitychange', () => {
 void checkUpdates();
 
 try {
+  const backdropUrls = [...new Set(route.map(backdropUrl))];
   const resources = [
-    loadBackdrop(0),
     loadImage(`${pack}/sprites/lil-g.png`),
     loadImage('./assets/lil-g-carry.png'),
     loadImage('./assets/obstacles/obstacle-cast.png'),
     loadImage('./assets/beer-tray.png'),
     loadImage('./assets/beer-tray-left.png'),
     loadImage('./assets/obstacles/residential-vehicles.png'),
+    ...backdropUrls.map(loadImage),
   ];
   progress.max = resources.length;
   progress.value = 0;
-  let apartment;
-  [apartment, player, carrier, cast, cargo, cargoLeft, vehicleArt] = await Promise.all(
+  let loadedBackdrops;
+  [player, carrier, cast, cargo, cargoLeft, vehicleArt, ...loadedBackdrops] = await Promise.all(
     resources.map(async resource => {
       const art = await resource;
       progress.value += 1;
       return art;
     }),
   );
-  backgrounds = [apartment];
+  const byUrl = new Map(backdropUrls.map((url, index) => [url, loadedBackdrops[index]]));
+  backgrounds = route.map(scene => byUrl.get(backdropUrl(scene)));
   progress.hidden = true;
   start.disabled = false;
   requestAnimationFrame(frame);
