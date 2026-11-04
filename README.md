@@ -1,35 +1,27 @@
-# Lil’ G in Eau Claire — working project
+# The Great Monkey Beer Run · Lil’ G in Eau Claire
 
 ![The Great Monkey Beer Run — Lil’ G in Eau Claire](assets/branding/main-logo.png)
 
-Future multiple-level side-scrolling runner and reskin of [Seth Happens](https://github.com/natsteff/seth-happens). Final game title is TBD. Reuse of its controls and configuration is planned; backdrop and level gameplay changes will be designed during integration.
+<p align="center">
+  <a href="https://natsteff.github.io/lil-g-in-eau-claire/"><img src="docs/play-now.svg" width="400" alt="Play Now! Lil G in EC version 0.1.0"></a>
+</p>
 
-## Imported resources
+**Play version 0.1.0** in your browser. Full screen is recommended on desktop. On a phone, add the game to your Home Screen and play in landscape. [Open the game](https://natsteff.github.io/lil-g-in-eau-claire/)
 
-Imported from Great Monkey Beer Run on November 3, 2026.
+Pick up a towering stack of beer at the Unicorn Garage and carry it across Eau Claire to **3rd & Vine**. Dodge neighborhood traffic and swooping seagulls, ride on top of passing vehicles, and grab the spring in the first residential section to unlock **Mega Jump**.
 
-- `assets/great-monkey-beer-run/monkey-phaser-skin/`: seven backdrops, a six-frame transparent Lil’ G sprite sheet, six individual frames, and the original handoff README, manifest, Phaser example, and Godot extraction helper.
-- `docs/references/great-monkey-beer-run/title-logo-concept.jpg`: source title concept; the new title remains undecided.
-- `docs/references/great-monkey-beer-run/beer-cargo/`: mixed beer stack and Unicorn Haze six-pack reference art. These are reference images, not prepared transparent gameplay sprites.
-- `docs/references/great-monkey-beer-run/early-prototypes/`: three original concept boards covering characters/items/environments, Nana-Racer/GOAT vehicles, and Unicorn Garage locations and props. See the folder README for preparation notes.
-- `docs/import-manifest.json`: SHA-256 hashes and sizes for all imported files.
+## Add the game to your Home Screen
 
-The source pack is preserved unchanged, excluding Finder metadata. Its README documents animation registration, placement, and backdrop limitations. The extraction helper depends on the original Godot project; it is retained for provenance.
+1. Open the [game](https://natsteff.github.io/lil-g-in-eau-claire/) on your phone.
+2. **iPhone:** In Safari, tap **Share → Add to Home Screen → Add**. **Android:** In Chrome, open the **⋮** menu and choose **Add to Home screen** or **Install app**, whichever appears.
+3. Launch the **Lil G in EC** icon and turn your phone sideways.
 
-## Play the prototype
+## Controls
 
-Run `python3 -m http.server 8000` from the repository root and open http://localhost:8000/. Use A/D or the arrow keys to move, Space to jump, F to interact, P to pause, and R to restart. Touch buttons provide movement, jump, and action.
-
-Leave the apartment to the right, pick up the full beer stack in the garage, and cross three residential stretches on either side of Downtown. Collect the spring in Residential A1 to unlock Mega Jump. Press Jump twice quickly for extra height. Landing on top of moving traffic is safe. At the destination, use Action near the center marker to enter. Inside 3rd & Vine, use Action at the delivery marker by the bar to finish. Bumps are counted and briefly knock Lil’ G back.
-
-This first playable uses the browser Canvas API and Seth Happens-style keyboard bindings. It has no external build dependencies. For future GitHub Pages hosting, serve the repository root. Asset links and the web app manifest use relative URLs.
-
-## App icon and home-screen name
-
-The provisional icon is saved at `assets/branding/app-icon-original.png`. The default home-screen label must be **Lil G in EC**. See `assets/branding/README.md` for web app integration requirements.
-
-## Seth Happens technical handoff
-
-The [technical handoff](https://github.com/natsteff/seth-happens/blob/main/MONKEY_BEER_RUN_HANDOFF.md) recommends starting from the public Seth Happens v1.0.12 source as an independent Phaser game. Reuse the menu, input, and audio systems. Before the first run, disable shared scores, give browser storage its own namespace, and apply this project's logo, icon, and **Lil G in EC** home-screen name.
-
-The first playable slice can use the exported Lil’ G sheet and one backdrop, with one platform and one interaction. Build the new route and level transitions from there. Seth Happens has a single gameplay scene, so progression across levels needs its own implementation.
+| Action | Keyboard | Touch |
+| --- | --- | --- |
+| Move | **A/D** or **←/→** | **◀ / ▶** |
+| Jump | **Space**, **W**, or **↑** | **Jump** |
+| Mega Jump after collecting the spring | Quickly press **Space** twice | Quickly tap **Jump** twice |
+| Pick up beer, enter 3rd & Vine, or deliver | **F** | **Action** |
+| Pause, restart, sound, or full screen | **P**, **R**, **S**, or **V** | Matching toolbar buttons |
