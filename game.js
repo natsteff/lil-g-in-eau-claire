@@ -1,3 +1,4 @@
+import { touch } from './src/touch.mjs';
 const canvas = document.querySelector('#game');
 const ctx = canvas.getContext('2d');
 const status = document.querySelector('#status');
@@ -51,22 +52,24 @@ let y = defaultGround;
 let velocity = 0;
 let direction = 1;
 let carrying = false;
+let moving = false;
 let hits = 0;
 let invincible = 0;
 let mode = 'title';
 let clock = 0;
 let previousTime = 0;
 const held = new Set();
-const touches = new Map();
+
 const pressed = new Set();
 const keys = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', Space: 'jump', ArrowUp: 'jump', KeyW: 'jump', KeyF: 'action' };
-const active = key => held.has(key) || [...touches.values()].includes(key);
+const active = key => held.has(key);
 const groundY = () => route[level].ground ?? defaultGround;
 const near = point => point !== undefined && Math.abs(x - point) < 62 && y > groundY() - 30;
 
 function clearInput() {
   held.clear();
-  touches.clear();
+  touch.clear();
+  moving = false;
   pressed.clear();
 }
 function syncMusic() {
@@ -102,11 +105,15 @@ async function toggleFullscreen() {
   updateFullscreen();
 }
 sound.onclick = toggleSound;
-fullscreen.onclick = toggleFullscreen;
+fullscreen.onclick = () => {
+  settings.close();
+  void toggleFullscreen();
+};
 document.addEventListener('fullscreenchange', updateFullscreen);
 
 function showMenu(next, copy, label) {
   mode = next;
+  touch.enabled = false;
   menu.dataset.mode = next;
   syncMusic();
   clearInput();
@@ -116,6 +123,7 @@ function showMenu(next, copy, label) {
 }
 function play() {
   mode = 'play';
+  touch.enabled = true;
   restart.disabled = false;
   syncMusic();
   menu.hidden = true;
@@ -155,10 +163,11 @@ start.onclick = () => {
   if (mode === 'paused') play();
   else restartRun();
 };
-restart.onclick = restartRun;
-pause.onclick = togglePause;
+restart.onclick = () => { settings.close(); restartRun(); };
+pause.onclick = () => { resumeAfterSettings = false; settings.close(); };
 
 window.addEventListener('keydown', event => {
+  if (document.querySelector('#settings').open) return;
   if (event.code === 'Escape' && shell.classList.contains('expanded')) {
     shell.classList.remove('expanded');
     updateFullscreen();
@@ -181,18 +190,48 @@ window.addEventListener('blur', () => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && mode === 'play') togglePause();
 });
-for (const button of document.querySelectorAll('[data-key]')) {
-  button.addEventListener('pointerdown', event => {
-    if (mode !== 'play') return;
-    event.preventDefault();
-    button.setPointerCapture(event.pointerId);
-    touches.set(event.pointerId, button.dataset.key);
-    pressed.add(button.dataset.key);
-  });
-  for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) {
-    button.addEventListener(event, pointer => touches.delete(pointer.pointerId));
-  }
+const settings = document.querySelector('#settings');
+const controls = ['layout', 'spacing', 'large', 'quick'].map(id => document.getElementById(id));
+const [layout, spacing, large, quick] = controls;
+const controlKey = 'lil-g-in-ec.touch.v1';
+try {
+  const saved = JSON.parse(localStorage.getItem(controlKey));
+  if (['default', 'slider', 'stick'].includes(saved?.layout)) layout.value = saved.layout;
+  if (saved?.spacing >= 1 && saved.spacing <= 5) spacing.value = saved.spacing;
+  large.checked = saved?.large === true;
+  quick.checked = saved?.quick === true;
+} catch {}
+function applyControls() {
+  touch.clear();
+  touch.style = layout.value;
+  touch.quickSprintEnabled = quick.checked;
+  const stick = document.getElementById('touch-stick');
+  stick.hidden = layout.value === 'default';
+  stick.dataset.style = layout.value;
+  document.getElementById('touch-arrows').style.display = stick.hidden ? 'flex' : 'none';
+  shell.style.setProperty('--arrow-gap', `${Number(spacing.value) * 5}px`);
+  shell.style.setProperty('--arrow-size', large.checked ? '81px' : '54px');
 }
+applyControls();
+for (const control of controls) control.addEventListener('input', () => {
+  applyControls();
+  try {
+    localStorage.setItem(controlKey, JSON.stringify({
+      layout: layout.value, spacing: Number(spacing.value), large: large.checked, quick: quick.checked,
+    }));
+  } catch {}
+});
+let resumeAfterSettings = false;
+document.querySelector('#options').onclick = () => {
+  resumeAfterSettings = mode === 'play';
+  if (resumeAfterSettings) togglePause();
+  settings.showModal();
+};
+settings.addEventListener('close', () => {
+  if (resumeAfterSettings && mode === 'paused') play();
+});
+shell.addEventListener('contextmenu', event => event.preventDefault());
+window.matchMedia('(orientation: landscape)').addEventListener('change', clearInput);
 
 function patrolX(anchor, kind) {
   return anchor + Math.sin(clock * (1.15 + kind * 0.12) + anchor) * (kind === 3 ? 90 : 65);
@@ -248,12 +287,16 @@ function update(dt) {
   clock += dt;
   const scene = route[level];
   const ground = groundY();
-  const move = Number(active('right')) - Number(active('left'));
+  const input = touch.sample();
+  if (input.jump) pressed.add('jump');
+  if (input.interact) pressed.add('action');
+  const move = (Number(active('right')) - Number(active('left'))) || input.move;
+  moving = Boolean(move);
   if (move) direction = move;
   const pass = trafficPass(scene, clock);
   if (riding && (!pass?.active || pass.vehicle !== riding)) riding = null;
   if (riding) x -= trafficSpeed * dt;
-  x = Math.max(18, Math.min(scene.length + 24, x + move * (carrying ? 243 : 272) * dt));
+  x = Math.max(18, Math.min(scene.length + 24, x + move * (carrying ? 243 : 272) * (input.sprint ? 1.35 : 1) * dt));
   if (riding && Math.abs(x - pass.x) > vehicles[riding[1]].width / 2 + 9) riding = null;
   if (!megaUnlocked && scene.spring !== undefined && Math.abs(x - scene.spring) < 28 && y > ground - 64) {
     megaUnlocked = true;
@@ -304,7 +347,7 @@ function update(dt) {
   }
   if (x >= scene.length && scene.door === undefined && scene.delivery === undefined) {
     if (scene.pickup === undefined || carrying) enter(level + 1);
-    else x = scene.length - 16;
+    else x = scene.length - 36;
   }
   pressed.clear();
 }
@@ -405,7 +448,7 @@ function draw() {
     ctx.drawImage(cast, left, top, sourceWidth, sourceHeight,
       patrolX(position, kind) - camera - spriteWidth / 2, ground - size - (kind === 3 ? birdLift(position) : 0), spriteWidth, size);
   }
-  const moving = active('left') || active('right');
+
   const frame = y < ground && !riding ? (velocity < 0 ? 4 : 5) : moving ? 1 + Math.floor(clock * 10) % 3 : 0;
   ctx.save();
   ctx.translate(x - camera, y);
@@ -432,7 +475,9 @@ function draw() {
     ctx.font = 'bold 14px system-ui';
     ctx.fillText('Traffic from right →', width - 24, 33);
   }
-  const hint = prompt && near(position) ? ` · F / Action: ${prompt}` : '';
+  const mobile = window.matchMedia('(pointer: coarse)').matches;
+  const hint = prompt && near(position) ? ` · ${mobile ? 'Action' : 'F'}: ${prompt}`
+    : scene.pickup !== undefined && !carrying && x > scene.pickup + 62 ? ' · Go back for the beer' : '';
   const megaHint = clock < tutorialUntil ? ' · Mega Jump unlocked! Quickly press Jump twice' : '';
   const line = `${scene.label} · ${level + 1}/${route.length} · Bumps: ${hits}${hint}${megaHint}`;
   if (status.textContent !== line) status.textContent = line;

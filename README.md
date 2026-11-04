@@ -18,6 +18,8 @@ Pick up a towering stack of beer at the Unicorn Garage and carry it across Eau C
 
 ## Controls
 
+On mobile, tap **☰** to customize your controls. Choose arrows, Sliding Speed Runner, or Game Stick. Arrow spacing, larger arrows, and double-tap sprint settings are saved on your device.
+
 | Action | Keyboard | Touch |
 | --- | --- | --- |
 | Move | **A/D** or **←/→** | **◀ / ▶** |

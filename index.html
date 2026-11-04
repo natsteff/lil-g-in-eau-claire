@@ -15,23 +15,61 @@ canvas{display:block;width:100%;aspect-ratio:5/2;height:auto} #menu{position:abs
 #menu[hidden]{display:none} #menu[data-mode="paused"] img{mix-blend-mode:screen} #menu img{width:min(60vw,390px);max-height:45dvh;object-fit:contain}
 button{font:inherit;color:#fff;background:#203e57;border:1px solid #7b9aae;border-radius:9px;padding:9px 14px;touch-action:none;cursor:pointer}
 #start{background:#efb548;color:#151009} nav button{min-width:54px} small{color:#b8c9d9}
-@media (orientation:landscape) and (max-height:520px){main{width:min(100%,calc((100dvh - 110px)*2.5))}body{padding:0} #menu img{max-height:32dvh}}
-.tools{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
-main:fullscreen,main.expanded{width:100%;max-width:none;height:100dvh;background:#091727;padding:max(6px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));display:flex;flex-direction:column}
-main.expanded{position:fixed;inset:0;z-index:2}
-main:fullscreen .stage,main.expanded .stage{flex:1;min-height:0;display:grid;place-items:center}
-main:fullscreen canvas,main.expanded canvas{width:100%;height:100%;object-fit:contain;min-height:0}
+main,main *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.tools{flex-wrap:wrap;justify-content:flex-start}
+.stage{touch-action:none}
+canvas{object-fit:contain}
+nav{position:absolute;inset:auto 12px 10px;margin:0;pointer-events:none}
+nav button,#touch-stick{pointer-events:auto;touch-action:none;background:#17394bd9;border:2px solid #96bdc9;min-height:48px}
+nav button[data-held],#touch-arrows[data-sprint="true"] button[data-held]{background:#457987}
+#touch-arrows{display:flex;gap:var(--arrow-gap,8px)}
+#touch-arrows button{width:var(--arrow-size,54px);min-height:var(--arrow-size,54px)}
+#touch-stick{position:relative;width:140px;height:54px;border-radius:28px}
+#touch-stick[data-style="stick"]{width:85px;height:85px;border-radius:50%}
+#touch-stick::after{content:"";position:absolute;left:50%;top:50%;width:36px;height:36px;border-radius:50%;background:#9dc6cd;transform:translate(calc(-50% + var(--stick-x,0px)),calc(-50% + var(--stick-y,0px)))}
+#menu{z-index:1}
+dialog{color:#fff;background:#10263a;border:1px solid #96bdc9;border-radius:12px;max-height:90dvh;max-width:90vw}
+dialog::backdrop{background:#000a}
+dialog label{display:block;margin:9px 0}
+main:fullscreen{width:100%;height:100%;display:flex;flex-direction:column;background:#091727}
+main.expanded{position:fixed;inset:0;width:100%;height:100dvh;display:flex;flex-direction:column;background:#091727}
+main:fullscreen .stage{flex:1;min-height:0}
+main.expanded .stage{flex:1;min-height:0}
+main:fullscreen canvas{height:100%}
+main.expanded canvas{height:100%}
+@media (pointer:coarse){
+  body{padding:0;overflow:hidden}
+  main{width:100%;height:100dvh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);display:flex;flex-direction:column}
+  header{margin:0;padding:3px 8px;font-size:13px}
+  header button{min-height:40px}
+  .stage{flex:1;min-height:0;border:0;border-radius:0}
+  canvas{height:100%}
+  small{display:none}
+  #menu img{max-height:40dvh}
+}
 </style>
 <main>
-<header><span id="status" aria-live="polite">Lil’ G in Eau Claire</span><div class="tools"><button id="sound" type="button" aria-pressed="true">Sound: On</button><button id="fullscreen" type="button" aria-pressed="false">Full screen</button><button id="pause" type="button">Pause</button><button id="restart" type="button" disabled>Restart</button></div></header>
+<header><span id="status" aria-live="polite">Lil’ G in Eau Claire</span><button id="options" aria-label="Game menu">☰</button></header>
+<dialog id="settings">
+<form method="dialog">
+<h2>Game menu</h2>
+<div class="tools"><button id="sound" type="button" aria-pressed="true">Sound: On</button><button id="fullscreen" type="button" aria-pressed="false">Full screen</button><button id="pause" type="button">Pause</button><button id="restart" type="button" disabled>Restart</button></div>
+<h3>Customize controls</h3>
+<label>Layout <select id="layout"><option value="default">Left / right arrows</option><option value="slider">Sliding Speed Runner</option><option value="stick">Game Stick</option></select></label>
+<label>Arrow spacing <input id="spacing" type="range" min="1" max="5" value="2"></label>
+<label><input id="large" type="checkbox"> Larger arrows</label>
+<label><input id="quick" type="checkbox"> Double-tap and hold to sprint</label>
+<button>Done</button>
+</form>
+</dialog>
 <div class="stage">
 <canvas id="game" width="960" height="384" aria-label="Lil’ G side-scrolling game"></canvas>
 <section id="menu"><img src="./assets/branding/main-logo.png" alt="The Great Monkey Beer Run — Lil’ G in Eau Claire"><p id="message">Pick up the beer and deliver it across town.</p><button id="start">Start run</button></section>
-</div>
 <nav aria-label="Game controls">
-<div><button data-key="left" aria-label="Move left">◀</button> <button data-key="right" aria-label="Move right">▶</button></div>
-<div><button data-key="action">Action</button> <button data-key="jump">Jump</button></div>
+<div><div id="touch-arrows"><button data-touch="left" aria-label="Move left">◀</button><button data-touch="right" aria-label="Move right">▶</button></div><div id="touch-stick" role="slider" tabindex="0" aria-label="Movement" aria-valuemin="-100" aria-valuemax="100" hidden></div></div>
+<div><button data-touch="interact">Action</button> <button data-touch="jump">Jump</button></div>
 </nav>
+</div>
 <small>Move: A/D or arrows · Jump: Space · Action: F · Pause: P · Sound: S · Full screen: V · Restart: R</small>
 </main>
 <script type="module" src="./game.js"></script>
