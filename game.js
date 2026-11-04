@@ -14,7 +14,18 @@ const pause = document.querySelector('#pause');
 const sound = document.querySelector('#sound');
 const fullscreen = document.querySelector('#fullscreen');
 const shell = document.querySelector('main');
-const music = new Audio('./assets/audio/retro-ec.mp3');
+const soundtrack = document.querySelector('#soundtrack');
+const soundtrackKey = 'lil-g-in-ec.soundtrack';
+try {
+  const saved = localStorage.getItem(soundtrackKey);
+  if ([...soundtrack.options].some(option => option.value === saved)) soundtrack.value = saved;
+} catch {}
+const music = new Audio(soundtrack.value);
+soundtrack.onchange = () => {
+  music.src = soundtrack.value;
+  try { localStorage.setItem(soundtrackKey, soundtrack.value); } catch {}
+  syncMusic();
+};
 music.loop = true;
 music.volume = 0.65;
 let soundOn = true;
@@ -25,12 +36,12 @@ const pack = './assets/great-monkey-beer-run/monkey-phaser-skin';
 const route = [
   { art: 'apartment', label: 'Apartment', length: 960, spawn: 220 },
   { art: 'garage', label: 'Garage', length: 960, pickup: 475 },
-  { art: 'residential-a', label: 'Residential A1', length: 1620, spring: 250, obstacles: [[550, 2], [1280, 3]], traffic: [[940, 0]] },
-  { neighborhood: 0, label: 'Residential A2', length: 1580, obstacles: [[480, 0]], traffic: [[800, 1], [1240, 3]] },
-  { neighborhood: 1, label: 'Residential A3', length: 1710, obstacles: [[520, 5], [1370, 2]], traffic: [[950, 2]] },
-  { art: 'downtown', label: 'Downtown', length: 2180, ground: 270, obstacles: [[460, 1], [800, 5], [1140, 3], [1500, 4], [1830, 0]] },
+  { art: 'residential-a', label: 'Residential A1', length: 1620, obstacles: [[550, 2], [1280, 3]], traffic: [[940, 0]] },
+  { neighborhood: 0, label: 'Residential A2', length: 1580, obstacles: [[480, 0]], traffic: [[800, 5], [1240, 3], [800, 1]] },
+  { neighborhood: 1, label: 'Residential A3', length: 1710, spring: 200, obstacles: [[520, 5], [1370, 2]], traffic: [[950, 2]] },
+  { art: 'downtown', label: 'Downtown', length: 3100, ground: 270, obstacles: [[410, 7], [680, 8], [940, 9], [1220, 4], [1490, 10], [1760, 11], [2030, 12], [2300, 13], [2570, 14], [2840, 0]] },
   { art: 'residential-b', label: 'Residential B1', length: 1640, obstacles: [[450, 2], [1190, 3]], traffic: [[830, 4]] },
-  { neighborhood: 2, label: 'Residential B2', length: 1580, obstacles: [[470, 1]], traffic: [[820, 0], [1230, 1]] },
+  { neighborhood: 2, label: 'Residential B2', length: 1580, obstacles: [[470, 1]], traffic: [[820, 6], [1230, 1], [820, 0]] },
   { neighborhood: 3, label: 'Residential B3', length: 1710, obstacles: [[490, 3], [1380, 5]], traffic: [[930, 2]] },
   { art: 'destination', label: 'Destination', length: 960, ground: 252, door: 525, obstacles: [[300, 6]] },
   { backdrop: './assets/3rd-and-vine-interior.png', label: 'Inside 3rd & Vine', length: 960, delivery: 450, ground: 355 },
@@ -44,7 +55,7 @@ function loadImage(url) {
   });
 }
 
-let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt;
+let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, garageVehicleArt, downtownCast;
 let megaUnlocked = false;
 let jumpStarted = -Infinity;
 let riding = null;
@@ -274,7 +285,10 @@ installDialogRotationRecovery(shell, {
 });
 updateFullscreen();
 
+const eagleKind = 13;
 function patrolX(anchor, kind) {
+  if (kind === eagleKind) return anchor + Math.sin(clock * 2.1 + anchor) * 145;
+  if (kind === 12) return anchor + Math.sin(clock * 1.8 + anchor) * 95;
   return anchor + Math.sin(clock * (1.15 + kind * 0.12) + anchor) * (kind === 3 ? 90 : 65);
 }
 // Tight source rectangles remove the atlas padding below each character's feet.
@@ -283,15 +297,21 @@ const obstacleFrames = [
   [1378, 18, 363, 394], [54, 463, 327, 395], [480, 460, 376, 398],
   [930, 462, 357, 396],
 ];
+const downtownFrames = [
+  [98, 10, 279, 426], [525, 12, 253, 424], [897, 10, 405, 426], [1383, 0, 342, 437],
+  [90, 452, 255, 427], [450, 467, 374, 416], [879, 446, 429, 404], [1410, 447, 319, 436],
+];
 const neighborhoodStrips = [[0, 312], [312, 315], [627, 313], [940, 314]];
 const vehicleFrames = [
   [14, 286, 362, 193], [430, 227, 173, 252], [645, 267, 599, 210],
   [1277, 295, 387, 182], [1699, 262, 463, 214],
+  [128, 245, 813, 339], [1135, 100, 922, 531],
 ];
 const vehicles = [
   { width: 196, height: 104 }, { width: 69, height: 101 },
   { width: 382, height: 134 }, { width: 204, height: 96 },
   { width: 294, height: 136 },
+  { width: 208, height: 87 }, { width: 248, height: 143 },
 ];
 const trafficSpeed = 380;
 const trafficGap = 0.8;
@@ -314,7 +334,12 @@ function trafficPass(scene, time) {
     active: phase >= trafficGap,
   };
 }
-function birdLift(anchor) {
+function birdLift(anchor, kind) {
+  if (kind === eagleKind) {
+    const dive = Math.max(0, Math.cos(clock * 2.45 + anchor)) ** 8;
+    return 176 - dive * 163;
+  }
+  if (kind !== 3) return 0;
   const dive = Math.max(0, Math.cos(clock * 1.45 + anchor)) ** 5;
   return 122 - dive * 105;
 }
@@ -376,7 +401,7 @@ function update(dt) {
     }
   }
   for (const [position, kind] of scene.obstacles ?? []) {
-    const bottom = ground - (kind === 3 ? birdLift(position) : 0);
+    const bottom = ground - birdLift(position, kind);
     if (!invincible && Math.abs(x - patrolX(position, kind)) < 33 && y > bottom - 55 && y - 55 < bottom) bump();
   }
   if (pressed.has('action')) {
@@ -458,7 +483,7 @@ function draw() {
     const kind = pass.vehicle[1];
     const shape = vehicles[kind];
     const [left, top, sourceWidth, sourceHeight] = vehicleFrames[kind];
-    ctx.drawImage(vehicleArt, left, top, sourceWidth, sourceHeight,
+    ctx.drawImage(kind >= 5 ? garageVehicleArt : vehicleArt, left, top, sourceWidth, sourceHeight,
       pass.x - camera - shape.width / 2, ground - shape.height, shape.width, shape.height);
   }
   const position = scene.pickup ?? scene.door ?? scene.delivery;
@@ -484,11 +509,18 @@ function draw() {
     ctx.fillText(prompt, position - camera, ground - 107);
   }
   for (const [position, kind] of scene.obstacles ?? []) {
-    const [left, top, sourceWidth, sourceHeight] = obstacleFrames[kind];
-    const size = kind === 3 ? 62 : 76;
+    const [left, top, sourceWidth, sourceHeight] = kind < 7 ? obstacleFrames[kind] : downtownFrames[kind - 7];
+    const size = kind === eagleKind ? 67 : kind === 3 || kind === 12 ? 62 : 76;
     const spriteWidth = size * sourceWidth / sourceHeight;
-    ctx.drawImage(cast, left, top, sourceWidth, sourceHeight,
-      patrolX(position, kind) - camera - spriteWidth / 2, ground - size - (kind === 3 ? birdLift(position) : 0), spriteWidth, size);
+    ctx.drawImage(kind < 7 ? cast : downtownCast, left, top, sourceWidth, sourceHeight,
+      patrolX(position, kind) - camera - spriteWidth / 2, ground - size - birdLift(position, kind), spriteWidth, size);
+    if (kind === eagleKind) {
+      ctx.font = 'bold 12px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffd563';
+      ctx.fillText('Evil Old Abe', patrolX(position, kind) - camera,
+        ground - size - birdLift(position, kind) - 6);
+    }
   }
 
   const frame = y < ground && !riding ? (velocity < 0 ? 4 : 5) : moving ? 1 + Math.floor(clock * 10) % 3 : 0;
@@ -601,12 +633,14 @@ try {
     loadImage('./assets/beer-tray.png'),
     loadImage('./assets/beer-tray-left.png'),
     loadImage('./assets/obstacles/residential-vehicles.png'),
+    loadImage('./assets/obstacles/garage-vehicles.png'),
+    loadImage('./assets/obstacles/downtown-cast.png'),
     ...backdropUrls.map(loadImage),
   ];
   progress.max = resources.length;
   progress.value = 0;
   let loadedBackdrops;
-  [player, carrier, cast, cargo, cargoLeft, vehicleArt, ...loadedBackdrops] = await Promise.all(
+  [player, carrier, cast, cargo, cargoLeft, vehicleArt, garageVehicleArt, downtownCast, ...loadedBackdrops] = await Promise.all(
     resources.map(async resource => {
       const art = await resource;
       progress.value += 1;
