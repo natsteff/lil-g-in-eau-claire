@@ -28,6 +28,40 @@ soundtrack.onchange = () => {
 };
 music.loop = true;
 music.volume = 0.65;
+const jumpSound = new Audio('./assets/audio/quick-jump.wav');
+const megaJumpSound = new Audio('./assets/audio/mega-jump-v3.wav');
+const jumpSounds = [jumpSound, megaJumpSound];
+for (const effect of jumpSounds) effect.volume = 0.65;
+let jumpToneContext;
+function prepareJumpTone() {
+  try {
+    jumpToneContext ??= new AudioContext();
+    void jumpToneContext.resume().catch(() => {});
+  } catch {}
+}
+function playJumpSound(effect) {
+  if (!soundOn) return;
+  for (const clip of jumpSounds) clip.pause();
+  effect.currentTime = 0;
+  void effect.play().catch(() => {});
+  const context = jumpToneContext;
+  if (effect !== jumpSound || context?.state !== 'running') return;
+  const start = context.currentTime;
+  const tone = context.createOscillator();
+  const envelope = context.createGain();
+  const mix = context.createGain();
+  mix.gain.value = 0.18 * 0.8;
+  tone.type = 'triangle';
+  tone.frequency.setValueAtTime(105, start);
+  tone.frequency.exponentialRampToValueAtTime(65, start + 0.10);
+  envelope.gain.setValueAtTime(0.001, start);
+  envelope.gain.linearRampToValueAtTime(0.5, start + 0.008);
+  envelope.gain.exponentialRampToValueAtTime(0.001, start + 0.10);
+  tone.connect(envelope).connect(mix).connect(context.destination);
+  tone.onended = () => { tone.disconnect(); envelope.disconnect(); mix.disconnect(); };
+  tone.start(start);
+  tone.stop(start + 0.12);
+}
 const finaleMusic = new Audio('./assets/audio/beertastic-success.mp3');
 finaleMusic.volume = music.volume;
 finaleMusic.loop = true;
@@ -37,15 +71,26 @@ const width = canvas.width;
 const height = canvas.height;
 const defaultGround = 339;
 const pack = './assets/great-monkey-beer-run/monkey-phaser-skin';
+const mixedTraffic = Array.from({ length: 7 }, (_, kind) => [0, kind]);
+const etvKind = 11;
+const wagonKind = 13;
+const regularCarKinds = [8, 9, 10, 12];
+const largeVehicleKinds = new Set([2, 4, 6]);
 const route = [
   { art: 'apartment', label: 'Apartment', length: 960, spawn: 220 },
   { backdrop: './assets/unicorn-beer-distribution.png', label: 'Unicorn Beer Distribution', length: 960, pickup: 475 },
-  { art: 'residential-a', label: 'Residential A1', length: 1620, obstacles: [[550, 2], [1280, 3]], traffic: [[940, 0]] },
+  { art: 'residential-a', label: 'Residential A1', length: 1620, obstacles: [[550, 2], [1280, 3]], traffic: [[940, wagonKind]] },
+  { backdrop: './assets/event-center.png', label: 'Event Center', length: 2400,
+    spring: 170, firstVehicle: etvKind, obstacles: [[680, 15], [1080, 16]], traffic: mixedTraffic },
   { neighborhood: 0, label: 'Residential A2', length: 1580, obstacles: [[480, 0]], traffic: [[800, 5], [1240, 3], [800, 1]] },
-  { neighborhood: 1, label: 'Residential A3', length: 1710, spring: 200, obstacles: [[520, 5], [1370, 2]], traffic: [[950, 2]] },
+  { neighborhood: 1, label: 'Residential A3', length: 1710, obstacles: [[520, 5], [1370, 2]], traffic: [[950, 2]] },
   { art: 'downtown', label: 'Downtown', length: 3100, ground: 270, obstacles: [[410, 7], [680, 8], [940, 9], [1220, 4], [1490, 10], [1760, 11], [2030, 12], [2300, 13], [2570, 14], [2840, 0]] },
   { art: 'residential-b', label: 'Residential B1', length: 1640, obstacles: [[450, 2], [1190, 3]], traffic: [[830, 4]] },
+  { backdrop: './assets/blueberry-place.png', label: 'Blueberry Place', length: 2400, ground: 365,
+    obstacles: [[1120, 17]], traffic: mixedTraffic },
   { neighborhood: 2, label: 'Residential B2', length: 1580, obstacles: [[470, 1]], traffic: [[820, 6], [1230, 1], [820, 0]] },
+  { backdrop: './assets/brewery.png', label: 'Brewery', length: 2250, ground: 346,
+    obstacles: [[1050, 18]], traffic: [[0, 7]] },
   { neighborhood: 3, label: 'Residential B3', length: 1710, obstacles: [[490, 3], [1380, 5]], traffic: [[930, 2]] },
   { art: 'destination', label: 'Destination', length: 960, ground: 252, door: 525, rightLimit: 585, obstacles: [[300, 6]] },
   { backdrop: './assets/3rd-and-vine-interior.png', label: 'Inside 3rd & Vine', length: 960, delivery: 450, ground: 355 },
@@ -59,11 +104,13 @@ function loadImage(url) {
   });
 }
 
-let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, garageVehicleArt, downtownCast, toastCast, danceArt;
+let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, garageVehicleArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt;
 let megaUnlocked = false;
 let jumpStarted = -Infinity;
 let riding = null;
 let enteredAt = 0;
+let trafficOrder = [];
+let firstTrafficVehicle;
 let tutorialUntil = 0;
 let level = 0;
 let x = route[0].spawn;
@@ -108,6 +155,7 @@ function syncMusic() {
   const track = celebrationAt === null ? music : finaleMusic;
   const otherTrack = track === music ? finaleMusic : music;
   otherTrack.pause();
+  if (!soundOn || mode !== 'play') for (const effect of jumpSounds) effect.pause();
   if (soundOn && mode === 'play') {
     track.play().catch(() => {
       if (soundOn && mode === 'play') sound.textContent = 'Retry sound';
@@ -179,6 +227,20 @@ function enter(index) {
   repeatPedestriansAt = null;
   pedestrianEncore = false;
   enteredAt = clock;
+  const scene = route[index];
+  trafficOrder = (scene.traffic ?? []).filter(([, kind]) => megaUnlocked || !largeVehicleKinds.has(kind));
+  if (trafficOrder.length !== (scene.traffic?.length ?? 0)) trafficOrder.push([0, wagonKind]);
+  if (scene.traffic && scene.label !== 'Brewery') {
+    trafficOrder.push(...regularCarKinds.filter(kind => !trafficOrder.some(([, existing]) => existing === kind))
+      .map(kind => [0, kind]));
+  }
+  if (scene.traffic && scene.label !== 'Brewery') {
+    for (let i = trafficOrder.length - 1; i > 0; i--) {
+      const other = Math.floor(Math.random() * (i + 1));
+      [trafficOrder[i], trafficOrder[other]] = [trafficOrder[other], trafficOrder[i]];
+    }
+  }
+  firstTrafficVehicle = scene.firstVehicle === undefined ? trafficOrder[0] : [0, scene.firstVehicle];
   riding = null;
   jumpStarted = -Infinity;
   x = route[index].spawn ?? 75;
@@ -188,6 +250,7 @@ function enter(index) {
 }
 function restartRun() {
   if (start.disabled) return;
+  prepareJumpTone();
   clearInput();
   carrying = false;
   apartmentIntroMoved = false;
@@ -307,6 +370,7 @@ updateFullscreen();
 
 const eagleKind = 13;
 function patrolX(anchor, kind) {
+  if (kind === 15) return anchor + Math.sin((clock - enteredAt) * 0.75) * 85;
   if (kind === eagleKind) return anchor + Math.sin(clock * 2.1 + anchor) * 145;
   return anchor + Math.sin(clock * (1.15 + kind * 0.12) + anchor) * (kind === 3 ? 90 : 65);
 }
@@ -317,10 +381,17 @@ function cameraLeft(scene) {
 function pedestrianX(pass) {
   return pass.startX - (clock - pass.startedAt) * pass.speed;
 }
+const eventPassSpeeds = new Map([[16, 178]]);
+function passSpeeds(scene) {
+  if (scene.art === 'downtown') return downtownPassSpeeds;
+  if (scene.firstVehicle === etvKind) return eventPassSpeeds;
+  return null;
+}
 function updatePedestrianPasses(scene) {
-  if (scene.art !== 'downtown') return;
+  const speeds = passSpeeds(scene);
+  if (!speeds) return;
   const leftEdge = cameraLeft(scene);
-  if (pedestrianPasses.size === downtownPassSpeeds.size
+  if (pedestrianPasses.size === speeds.size
       && [...pedestrianPasses.values()].every(pass => pedestrianX(pass) < leftEdge - 80)) {
     repeatPedestriansAt ??= clock + 2;
     if (clock >= repeatPedestriansAt) {
@@ -331,14 +402,14 @@ function updatePedestrianPasses(scene) {
   }
   if ([...pedestrianPasses.values()].some(pass => pedestrianX(pass) >= x - 100)) return;
   for (const [anchor, kind] of scene.obstacles) {
-    const speed = downtownPassSpeeds.get(kind);
+    const speed = speeds.get(kind);
     if (!speed || pedestrianPasses.has(kind) || (!pedestrianEncore && x < anchor - 320)) continue;
     pedestrianPasses.set(kind, { startX: leftEdge + width + 80, startedAt: clock, speed });
     break;
   }
 }
 function obstacleX(scene, anchor, kind) {
-  if (scene.art !== 'downtown' || !downtownPassSpeeds.has(kind)) return patrolX(anchor, kind);
+  if (!passSpeeds(scene)?.has(kind)) return patrolX(anchor, kind);
   const pass = pedestrianPasses.get(kind);
   if (!pass) return null;
   const position = pedestrianX(pass);
@@ -354,17 +425,26 @@ const downtownFrames = [
   [98, 10, 279, 426], [525, 12, 253, 424], [897, 10, 405, 426], [1383, 0, 342, 437],
   [90, 452, 255, 427], [450, 467, 374, 416], [879, 446, 429, 404], [1410, 447, 319, 436],
 ];
+const eventFrames = [[315, 8, 458, 705], [1277, 0, 573, 711]];
 const neighborhoodStrips = [[0, 312], [312, 315], [627, 313], [940, 314]];
 const vehicleFrames = [
   [14, 286, 362, 193], [430, 227, 173, 252], [645, 267, 599, 210],
   [1277, 295, 387, 182], [1699, 262, 463, 214],
   [128, 245, 813, 339], [1135, 100, 922, 531],
+  [10, 57, 1754, 827],
+  [12, 267, 420, 178], [443, 237, 294, 209], [744, 270, 480, 175],
+  [1233, 271, 474, 174], [1718, 269, 453, 176],
+  [12, 106, 1753, 749],
 ];
 const vehicles = [
-  { width: 196, height: 104 }, { width: 69, height: 101 },
+  { width: 181, height: 96 }, { width: 69, height: 101 },
   { width: 382, height: 134 }, { width: 204, height: 96 },
   { width: 294, height: 136 },
   { width: 208, height: 87 }, { width: 248, height: 143 },
+  { width: 234, height: 110 },
+  { width: 190, height: 80 }, { width: 116, height: 82 }, { width: 212, height: 77 },
+  { width: 212, height: 78 }, { width: 191, height: 74 },
+  { width: 192, height: 82 },
 ];
 const trafficSpeed = 380;
 const trafficGap = 0.8;
@@ -375,18 +455,20 @@ function trafficPass(scene, time) {
   const firstDuration = (firstStart + margin) / trafficSpeed;
   const elapsed = Math.max(0, time - enteredAt);
   if (elapsed < firstDuration) {
-    return { vehicle: scene.traffic[0], x: firstStart - elapsed * trafficSpeed, active: true };
+    return { vehicle: firstTrafficVehicle, x: firstStart - elapsed * trafficSpeed, active: true };
   }
   const repeatElapsed = elapsed - firstDuration;
   const slot = (scene.length + 2 * margin) / trafficSpeed + trafficGap;
   const phase = repeatElapsed % slot;
-  const vehicle = scene.traffic[(1 + Math.floor(repeatElapsed / slot)) % scene.traffic.length];
+  const nextIndex = Math.floor(repeatElapsed / slot) + (scene.firstVehicle === undefined ? 1 : 0);
+  const vehicle = trafficOrder[nextIndex % trafficOrder.length];
   return {
     vehicle,
     x: scene.length + margin - (phase - trafficGap) * trafficSpeed,
     active: phase >= trafficGap,
   };
 }
+const obstacleHeight = kind => kind === eagleKind ? 67 : kind === 16 || kind === 17 ? 114 : kind === 3 || kind === 12 ? 62 : 76;
 function birdLift(anchor, kind) {
   if (kind === eagleKind) {
     const dive = Math.max(0, Math.cos(clock * 2.45 + anchor)) ** 8;
@@ -442,9 +524,11 @@ function update(dt) {
     if (riding || y === ground) {
       riding = null;
       velocity = -575;
+      playJumpSound(jumpSound);
       jumpStarted = clock;
     } else if (megaUnlocked && clock - jumpStarted <= 0.32) {
       velocity = -690;
+      playJumpSound(megaJumpSound);
       jumpStarted = -Infinity;
     }
   }
@@ -474,7 +558,10 @@ function update(dt) {
     const obstacle = obstacleX(scene, position, kind);
     if (obstacle === null) continue;
     const bottom = ground - birdLift(position, kind);
-    if (Math.abs(x - obstacle) < 33 && y > bottom - 55 && y - 55 < bottom) bump();
+    const enlarged = kind === 16 || kind === 17;
+    const hitWidth = enlarged ? 42 : 33;
+    const hitHeight = enlarged ? obstacleHeight(kind) - 14 : 55;
+    if (Math.abs(x - obstacle) < hitWidth && y > bottom - hitHeight && y - 55 < bottom) bump();
   }
   if (spillAt !== null) return;
   if (pressed.has('action')) {
@@ -718,7 +805,7 @@ function draw() {
     const kind = pass.vehicle[1];
     const shape = vehicles[kind];
     const [left, top, sourceWidth, sourceHeight] = vehicleFrames[kind];
-    ctx.drawImage(kind >= 5 ? garageVehicleArt : vehicleArt, left, top, sourceWidth, sourceHeight,
+    ctx.drawImage(kind === wagonKind ? wagonArt : kind >= 8 ? varietyCars : kind === 7 ? breweryVan : kind >= 5 ? garageVehicleArt : vehicleArt, left, top, sourceWidth, sourceHeight,
       pass.x - camera - shape.width / 2, ground - shape.height, shape.width, shape.height);
   }
   const position = scene.pickup ?? scene.door ?? scene.delivery;
@@ -746,10 +833,13 @@ function draw() {
   for (const [position, kind] of scene.obstacles ?? []) {
     const obstacle = obstacleX(scene, position, kind);
     if (obstacle === null) continue;
-    const [left, top, sourceWidth, sourceHeight] = kind < 7 ? obstacleFrames[kind] : downtownFrames[kind - 7];
-    const size = kind === eagleKind ? 67 : kind === 3 || kind === 12 ? 62 : 76;
+    const art = kind < 7 ? cast : kind < 15 ? downtownCast : kind < 17 ? eventCast : kind === 17 ? factoryWorker : breweryHipster;
+    const [left, top, sourceWidth, sourceHeight] = kind < 7 ? obstacleFrames[kind]
+      : kind < 15 ? downtownFrames[kind - 7] : kind < 17 ? eventFrames[kind - 15]
+        : [0, 0, art.width, art.height];
+    const size = obstacleHeight(kind);
     const spriteWidth = size * sourceWidth / sourceHeight;
-    ctx.drawImage(kind < 7 ? cast : downtownCast, left, top, sourceWidth, sourceHeight,
+    ctx.drawImage(art, left, top, sourceWidth, sourceHeight,
       obstacle - camera - spriteWidth / 2, ground - size - birdLift(position, kind), spriteWidth, size);
     if (kind === eagleKind) {
       ctx.font = 'bold 12px system-ui';
@@ -892,13 +982,19 @@ try {
     loadImage('./assets/obstacles/downtown-cast.png'),
     loadImage('./assets/celebration-toast.png'),
     loadImage('./assets/lil-g-dance.png'),
+    loadImage('./assets/obstacles/event-center-cast.png'),
+    loadImage('./assets/obstacles/factory-worker.png'),
+    loadImage('./assets/obstacles/brewery-van.png'),
+    loadImage('./assets/obstacles/brewery-hipster.png'),
+    loadImage('./assets/obstacles/traffic-variety.png'),
+    loadImage('./assets/obstacles/wagon-suv.png'),
     loadImage('./assets/lil-g-collapse.png'),
     ...backdropUrls.map(loadImage),
   ];
   progress.max = resources.length;
   progress.value = 0;
   let loadedBackdrops;
-  [player, carrier, cast, cargo, cargoLeft, vehicleArt, garageVehicleArt, downtownCast, toastCast, danceArt, collapseArt, ...loadedBackdrops] = await Promise.all(
+  [player, carrier, cast, cargo, cargoLeft, vehicleArt, garageVehicleArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, collapseArt, ...loadedBackdrops] = await Promise.all(
     resources.map(async resource => {
       const art = await resource;
       progress.value += 1;
