@@ -74,8 +74,12 @@ const pack = './assets/great-monkey-beer-run/monkey-phaser-skin';
 const mixedTraffic = Array.from({ length: 7 }, (_, kind) => [0, kind]);
 const etvKind = 11;
 const wagonKind = 13;
-const regularCarKinds = [8, 9, 10, 12];
-const largeVehicleKinds = new Set([2, 4, 6]);
+const sportsCarKind = 14;
+const alfaRomeoKind = 15;
+const keiTruckKind = 16;
+const liftedPickupKind = 17;
+const regularCarKinds = [8, 9, 10, 12, sportsCarKind, alfaRomeoKind, keiTruckKind, liftedPickupKind];
+const largeVehicleKinds = new Set([2, 4, 6, liftedPickupKind]);
 const route = [
   { art: 'apartment', label: 'Apartment', length: 960, spawn: 220 },
   { backdrop: './assets/unicorn-beer-distribution.png', label: 'Unicorn Beer Distribution', length: 960, pickup: 475 },
@@ -104,7 +108,7 @@ function loadImage(url) {
   });
 }
 
-let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, garageVehicleArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt;
+let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, garageVehicleArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt;
 let megaUnlocked = false;
 let jumpStarted = -Infinity;
 let riding = null;
@@ -231,7 +235,8 @@ function enter(index) {
   trafficOrder = (scene.traffic ?? []).filter(([, kind]) => megaUnlocked || !largeVehicleKinds.has(kind));
   if (trafficOrder.length !== (scene.traffic?.length ?? 0)) trafficOrder.push([0, wagonKind]);
   if (scene.traffic && scene.label !== 'Brewery') {
-    trafficOrder.push(...regularCarKinds.filter(kind => !trafficOrder.some(([, existing]) => existing === kind))
+    trafficOrder.push(...regularCarKinds.filter(kind => (megaUnlocked || !largeVehicleKinds.has(kind))
+      && !trafficOrder.some(([, existing]) => existing === kind))
       .map(kind => [0, kind]));
   }
   if (scene.traffic && scene.label !== 'Brewery') {
@@ -435,6 +440,10 @@ const vehicleFrames = [
   [12, 267, 420, 178], [443, 237, 294, 209], [744, 270, 480, 175],
   [1233, 271, 474, 174], [1718, 269, 453, 176],
   [12, 106, 1753, 749],
+  [14, 9, 693, 231],
+  [15, 10, 704, 230],
+  [81, 3, 581, 283],
+  [3, 4, 711, 264],
 ];
 const vehicles = [
   { width: 181, height: 96 }, { width: 69, height: 101 },
@@ -445,6 +454,10 @@ const vehicles = [
   { width: 190, height: 80 }, { width: 116, height: 82 }, { width: 212, height: 77 },
   { width: 212, height: 78 }, { width: 191, height: 74 },
   { width: 192, height: 82 },
+  { width: 192, height: 64 },
+  { width: 188, height: 60 },
+  { width: 162, height: 78 },
+  { width: 326, height: 121 },
 ];
 const trafficSpeed = 380;
 const trafficGap = 0.8;
@@ -805,7 +818,7 @@ function draw() {
     const kind = pass.vehicle[1];
     const shape = vehicles[kind];
     const [left, top, sourceWidth, sourceHeight] = vehicleFrames[kind];
-    ctx.drawImage(kind === wagonKind ? wagonArt : kind >= 8 ? varietyCars : kind === 7 ? breweryVan : kind >= 5 ? garageVehicleArt : vehicleArt, left, top, sourceWidth, sourceHeight,
+    ctx.drawImage(kind === liftedPickupKind ? liftedPickupArt : kind === keiTruckKind ? keiTruckArt : kind === alfaRomeoKind ? alfaRomeoArt : kind === sportsCarKind ? sportsCarArt : kind === wagonKind ? wagonArt : kind >= 8 ? varietyCars : kind === 7 ? breweryVan : kind >= 5 ? garageVehicleArt : vehicleArt, left, top, sourceWidth, sourceHeight,
       pass.x - camera - shape.width / 2, ground - shape.height, shape.width, shape.height);
   }
   const position = scene.pickup ?? scene.door ?? scene.delivery;
@@ -988,13 +1001,17 @@ try {
     loadImage('./assets/obstacles/brewery-hipster.png'),
     loadImage('./assets/obstacles/traffic-variety.png'),
     loadImage('./assets/obstacles/wagon-suv.png'),
+    loadImage('./assets/obstacles/orange-sports-car.png'),
+    loadImage('./assets/obstacles/white-alfa-romeo.png'),
+    loadImage('./assets/obstacles/white-kei-truck.png'),
+    loadImage('./assets/obstacles/lifted-black-pickup.png'),
     loadImage('./assets/lil-g-collapse.png'),
     ...backdropUrls.map(loadImage),
   ];
   progress.max = resources.length;
   progress.value = 0;
   let loadedBackdrops;
-  [player, carrier, cast, cargo, cargoLeft, vehicleArt, garageVehicleArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, collapseArt, ...loadedBackdrops] = await Promise.all(
+  [player, carrier, cast, cargo, cargoLeft, vehicleArt, garageVehicleArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, collapseArt, ...loadedBackdrops] = await Promise.all(
     resources.map(async resource => {
       const art = await resource;
       progress.value += 1;
