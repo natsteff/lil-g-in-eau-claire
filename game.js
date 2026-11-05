@@ -447,8 +447,8 @@ const vehicleFrames = [
 ];
 const vehicles = [
   { width: 181, height: 96 }, { width: 69, height: 101 },
-  { width: 382, height: 134 }, { width: 204, height: 96 },
-  { width: 294, height: 136 },
+  { width: 480, height: 168 }, { width: 204, height: 96 },
+  { width: 365, height: 169 },
   { width: 208, height: 87 }, { width: 248, height: 143 },
   { width: 234, height: 110 },
   { width: 190, height: 80 }, { width: 116, height: 82 }, { width: 212, height: 77 },
@@ -456,14 +456,14 @@ const vehicles = [
   { width: 192, height: 82 },
   { width: 192, height: 64 },
   { width: 188, height: 60 },
-  { width: 162, height: 78 },
+  { width: 148, height: 71 },
   { width: 326, height: 121 },
 ];
 const trafficSpeed = 380;
 const trafficGap = 0.8;
 function trafficPass(scene, time) {
   if (!scene.traffic?.length) return null;
-  const margin = 210;
+  const margin = Math.max(210, ...trafficOrder.map(([, kind]) => vehicles[kind].width / 2 + 10));
   const firstStart = width + margin;
   const firstDuration = (firstStart + margin) / trafficSpeed;
   const elapsed = Math.max(0, time - enteredAt);
@@ -650,8 +650,6 @@ const danceFrames = [
 ];
 function drawCelebration(ground) {
   const elapsed = clock - celebrationAt;
-  const toastDuration = 2.6;
-  const dancing = elapsed >= toastDuration;
   const guestWidth = toastCast.width / 4;
   const guestHeight = toastCast.height / 2;
   const guestPositions = [
@@ -659,7 +657,7 @@ function drawCelebration(ground) {
     [203, 0], [446, 2], [728, 0],
   ];
   guestPositions.forEach(([guestX, depth], index) => {
-    const sway = dancing ? Math.sin(elapsed * 5 + index * 0.8) * 0.1 : 0;
+    const sway = Math.sin(elapsed * 5 + index * 0.8) * 0.1;
     ctx.save();
     ctx.translate(guestX, ground - depth);
     ctx.rotate(sway);
@@ -667,17 +665,13 @@ function drawCelebration(ground) {
       guestWidth, guestHeight, -98, -196, 196, 196);
     ctx.restore();
   });
-  if (dancing) {
-    const beat = Math.floor((elapsed - toastDuration) * 5);
-    const [left, top, spriteWidth, spriteHeight] = danceFrames[beat % danceFrames.length];
-    const displayWidth = 160 * spriteWidth / spriteHeight;
-    const danceX = 584 + Math.sin(elapsed * 5) * 12;
-    ctx.drawImage(danceArt, left, top, spriteWidth, spriteHeight,
-      danceX - displayWidth / 2, ground - 160, displayWidth, 160);
-  } else {
-    ctx.drawImage(player, 0, 0, 362, 724, 584 - 54, ground - 168, 108, 216);
-  }
-  if (elapsed < toastDuration + 5) {
+  const beat = Math.floor(elapsed * 5);
+  const [left, top, spriteWidth, spriteHeight] = danceFrames[beat % danceFrames.length];
+  const displayWidth = 160 * spriteWidth / spriteHeight;
+  const danceX = 584 + Math.sin(elapsed * 5) * 12;
+  ctx.drawImage(danceArt, left, top, spriteWidth, spriteHeight,
+    danceX - displayWidth / 2, ground - 160, displayWidth, 160);
+  if (elapsed < 7.6) {
     ctx.fillStyle = '#092038e6';
     ctx.fillRect(0, 25, width, 58);
     ctx.fillStyle = '#ffd563';
@@ -685,7 +679,7 @@ function drawCelebration(ground) {
     ctx.font = 'bold 36px system-ui';
     ctx.fillText("Great Job Lil’ G!!!", width / 2, 65);
   }
-  const caption = dancing ? 'Beer delivered!' : 'Cheers to Lil’ G!';
+  const caption = 'Beer delivered!';
   if (status.textContent !== caption) status.textContent = caption;
 }
 
