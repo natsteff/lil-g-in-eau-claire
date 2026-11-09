@@ -65,37 +65,46 @@ function playJumpSound(effect) {
 const finaleMusic = new Audio('./assets/audio/beertastic-success.mp3');
 finaleMusic.volume = music.volume;
 finaleMusic.loop = true;
+const failureMusic = new Audio('./assets/audio/the-beer-has-fallen.mp3');
+failureMusic.volume = music.volume;
 let celebrationAt = null;
 let soundOn = true;
 const width = canvas.width;
 const height = canvas.height;
 const defaultGround = 339;
 const pack = './assets/great-monkey-beer-run/monkey-phaser-skin';
-const mixedTraffic = Array.from({ length: 7 }, (_, kind) => [0, kind]);
+const runnerKind = 16;
+const runnerScale = 0.8;
+const redPickupKind = 0;
+const policeCarKind = 3;
+const blackSuvKind = 5;
+const yellowTargaKind = 6;
 const etvKind = 11;
+const beerVanKind = 7;
 const wagonKind = 13;
 const sportsCarKind = 14;
 const alfaRomeoKind = 15;
 const keiTruckKind = 16;
 const liftedPickupKind = 17;
-const regularCarKinds = [8, 9, 10, 12, sportsCarKind, alfaRomeoKind, keiTruckKind, liftedPickupKind];
-const largeVehicleKinds = new Set([2, 4, 6, liftedPickupKind]);
+const whiteCrossoverKind = 18;
+const silverSuvKind = 19;
+const largeVehicleKinds = new Set([2, 4, liftedPickupKind]);
 const route = [
   { art: 'apartment', label: 'Apartment', length: 960, spawn: 220 },
   { backdrop: './assets/unicorn-beer-distribution.png', label: 'Unicorn Beer Distribution', length: 960, pickup: 475 },
-  { art: 'residential-a', label: 'Residential A1', length: 1620, obstacles: [[550, 2], [1280, 3]], traffic: [[940, wagonKind]] },
+  { art: 'residential-a', label: 'Residential A1', length: 1620, obstacles: [[550, 2], [1280, 3]], traffic: true },
   { backdrop: './assets/event-center.png', label: 'Event Center', length: 2400,
-    spring: 170, firstVehicle: etvKind, obstacles: [[680, 15], [1080, 16]], traffic: mixedTraffic },
-  { neighborhood: 0, label: 'Residential A2', length: 1580, obstacles: [[480, 0]], traffic: [[800, 5], [1240, 3], [800, 1]] },
-  { neighborhood: 1, label: 'Residential A3', length: 1710, obstacles: [[520, 5], [1370, 2]], traffic: [[950, 2]] },
+    spring: 170, featuredVehicle: etvKind, obstacles: [[680, 15], [1080, runnerKind]], traffic: true },
+  { neighborhood: 0, label: 'Residential A2', length: 1580, obstacles: [[480, 0]], traffic: true },
+  { neighborhood: 1, label: 'Residential A3', length: 1710, obstacles: [[520, 5], [1370, 2]], traffic: true },
   { art: 'downtown', label: 'Downtown', length: 3100, ground: 270, obstacles: [[410, 7], [680, 8], [940, 9], [1220, 4], [1490, 10], [1760, 11], [2030, 12], [2300, 13], [2570, 14], [2840, 0]] },
-  { art: 'residential-b', label: 'Residential B1', length: 1640, obstacles: [[450, 2], [1190, 3]], traffic: [[830, 4]] },
+  { art: 'residential-b', label: 'Residential B1', length: 1640, obstacles: [[450, 2], [1190, 3]], traffic: true },
   { backdrop: './assets/blueberry-place.png', label: 'Blueberry Place', length: 2400, ground: 365,
-    obstacles: [[1120, 17]], traffic: mixedTraffic },
-  { neighborhood: 2, label: 'Residential B2', length: 1580, obstacles: [[470, 1]], traffic: [[820, 6], [1230, 1], [820, 0]] },
+    obstacles: [[1120, 17]], traffic: true },
+  { neighborhood: 2, label: 'Residential B2', length: 1580, obstacles: [[470, 1]], traffic: true },
   { backdrop: './assets/brewery.png', label: 'Brewery', length: 2250, ground: 346,
-    obstacles: [[1050, 18]], traffic: [[0, 7]] },
-  { neighborhood: 3, label: 'Residential B3', length: 1710, obstacles: [[490, 3], [1380, 5]], traffic: [[930, 2]] },
+    obstacles: [[1050, 18]], traffic: true, featuredVehicle: beerVanKind },
+  { neighborhood: 3, label: 'Residential B3', length: 1710, obstacles: [[490, 3], [1380, 5]], traffic: true },
   { art: 'destination', label: 'Destination', length: 960, ground: 252, door: 525, rightLimit: 585, obstacles: [[300, 6]] },
   { backdrop: './assets/3rd-and-vine-interior.png', label: 'Inside 3rd & Vine', length: 960, delivery: 450, ground: 355 },
 ];
@@ -108,13 +117,14 @@ function loadImage(url) {
   });
 }
 
-let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, garageVehicleArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt;
+let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt;
 let megaUnlocked = false;
 let jumpStarted = -Infinity;
 let riding = null;
 let enteredAt = 0;
-let trafficOrder = [];
-let firstTrafficVehicle;
+const seenVehicles = new Set();
+let featuredVehicleSlot;
+let trafficEntry;
 let tutorialUntil = 0;
 let level = 0;
 let x = route[0].spawn;
@@ -156,13 +166,16 @@ function clearInput() {
   pressed.clear();
 }
 function syncMusic() {
-  const track = celebrationAt === null ? music : finaleMusic;
-  const otherTrack = track === music ? finaleMusic : music;
-  otherTrack.pause();
-  if (!soundOn || mode !== 'play') for (const effect of jumpSounds) effect.pause();
-  if (soundOn && mode === 'play') {
+  const failed = spillAt !== null;
+  const track = failed ? failureMusic : celebrationAt === null ? music : finaleMusic;
+  for (const otherTrack of [music, finaleMusic, failureMusic]) {
+    if (otherTrack !== track) otherTrack.pause();
+  }
+  if (!soundOn || mode !== 'play' || failed) for (const effect of jumpSounds) effect.pause();
+  const canPlay = () => soundOn && (mode === 'play' || (failed && mode === 'failed'));
+  if (canPlay() && !(failed && track.ended)) {
     track.play().catch(() => {
-      if (soundOn && mode === 'play') sound.textContent = 'Retry sound';
+      if (canPlay() && (spillAt !== null) === failed) sound.textContent = 'Retry sound';
     });
   } else track.pause();
 }
@@ -231,21 +244,8 @@ function enter(index) {
   repeatPedestriansAt = null;
   pedestrianEncore = false;
   enteredAt = clock;
-  const scene = route[index];
-  trafficOrder = (scene.traffic ?? []).filter(([, kind]) => megaUnlocked || !largeVehicleKinds.has(kind));
-  if (trafficOrder.length !== (scene.traffic?.length ?? 0)) trafficOrder.push([0, wagonKind]);
-  if (scene.traffic && scene.label !== 'Brewery') {
-    trafficOrder.push(...regularCarKinds.filter(kind => (megaUnlocked || !largeVehicleKinds.has(kind))
-      && !trafficOrder.some(([, existing]) => existing === kind))
-      .map(kind => [0, kind]));
-  }
-  if (scene.traffic && scene.label !== 'Brewery') {
-    for (let i = trafficOrder.length - 1; i > 0; i--) {
-      const other = Math.floor(Math.random() * (i + 1));
-      [trafficOrder[i], trafficOrder[other]] = [trafficOrder[other], trafficOrder[i]];
-    }
-  }
-  firstTrafficVehicle = scene.firstVehicle === undefined ? trafficOrder[0] : [0, scene.firstVehicle];
+  featuredVehicleSlot = route[index].featuredVehicle === undefined ? -1 : Math.floor(Math.random() * 2);
+  trafficEntry = null;
   riding = null;
   jumpStarted = -Infinity;
   x = route[index].spawn ?? 75;
@@ -258,6 +258,7 @@ function restartRun() {
   prepareJumpTone();
   clearInput();
   carrying = false;
+  seenVehicles.clear();
   apartmentIntroMoved = false;
   hits = 0;
   invincible = 0;
@@ -266,6 +267,8 @@ function restartRun() {
   megaUnlocked = false;
   tutorialUntil = 0;
   celebrationAt = null;
+  failureMusic.pause();
+  failureMusic.currentTime = 0;
   finaleMusic.currentTime = 0;
   music.currentTime = 0;
   enter(0);
@@ -340,6 +343,67 @@ for (const control of controls) control.addEventListener('input', () => {
     }));
   } catch {}
 });
+const controllerEnabled = document.querySelector('#controller-enabled');
+const controllerSwap = document.querySelector('#controller-swap');
+const controllerDeadzone = document.querySelector('#controller-deadzone');
+const controllerKey = 'lil-g-in-ec.controller.v1';
+try {
+  const saved = JSON.parse(localStorage.getItem(controllerKey));
+  controllerEnabled.checked = saved?.enabled !== false;
+  controllerSwap.checked = saved?.swap === true;
+  if (['0.15', '0.25', '0.4'].includes(saved?.deadzone)) controllerDeadzone.value = saved.deadzone;
+} catch {}
+for (const control of [controllerEnabled, controllerSwap, controllerDeadzone]) {
+  control.addEventListener('change', () => {
+    try {
+      localStorage.setItem(controllerKey, JSON.stringify({
+        enabled: controllerEnabled.checked,
+        swap: controllerSwap.checked,
+        deadzone: controllerDeadzone.value,
+      }));
+    } catch {}
+  });
+}
+
+let controllerConnected = false;
+let controllerButtons = { jump: false, action: false, pause: false };
+function readController() {
+  let pad;
+  if (controllerEnabled.checked) {
+    try {
+      pad = Array.from(navigator.getGamepads?.() ?? [])
+        .find(device => device?.connected && device.mapping === 'standard');
+    } catch {}
+  }
+  controllerConnected = Boolean(pad);
+  const down = index => Boolean(pad?.buttons[index]?.pressed);
+  const buttons = {
+    jump: down(controllerSwap.checked ? 2 : 0),
+    action: down(controllerSwap.checked ? 0 : 2),
+    pause: down(9),
+  };
+  const jump = buttons.jump && !controllerButtons.jump;
+  const action = buttons.action && !controllerButtons.action;
+  const pause = buttons.pause && !controllerButtons.pause;
+  controllerButtons = buttons;
+  if (!pad || document.hidden || !document.hasFocus() || settings.open) return 0;
+
+  if (mode !== 'play') {
+    if ((jump || pause) && !start.disabled) start.click();
+    return 0;
+  }
+  if (pause) {
+    togglePause();
+    return 0;
+  }
+  if (jump) pressed.add('jump');
+  if (action) pressed.add('action');
+  const axis = pad.axes[0] ?? 0;
+  const deadzone = Number(controllerDeadzone.value);
+  const dpad = Number(down(15)) - Number(down(14));
+  return dpad || (Math.abs(axis) >= deadzone ? Math.sign(axis) : 0);
+}
+
 let resumeAfterSettings = false;
 const menuButton = document.querySelector('#options');
 function openSettings() {
@@ -373,6 +437,8 @@ installDialogRotationRecovery(shell, {
 });
 updateFullscreen();
 
+const raccoonKind = 2;
+const raccoonScale = 0.6;
 const eagleKind = 13;
 function patrolX(anchor, kind) {
   if (kind === 15) return anchor + Math.sin((clock - enteredAt) * 0.75) * 85;
@@ -389,7 +455,7 @@ function pedestrianX(pass) {
 const eventPassSpeeds = new Map([[16, 178]]);
 function passSpeeds(scene) {
   if (scene.art === 'downtown') return downtownPassSpeeds;
-  if (scene.firstVehicle === etvKind) return eventPassSpeeds;
+  if (scene.featuredVehicle === etvKind) return eventPassSpeeds;
   return null;
 }
 function updatePedestrianPasses(scene) {
@@ -433,9 +499,9 @@ const downtownFrames = [
 const eventFrames = [[315, 8, 458, 705], [1277, 0, 573, 711]];
 const neighborhoodStrips = [[0, 312], [312, 315], [627, 313], [940, 314]];
 const vehicleFrames = [
-  [14, 286, 362, 193], [430, 227, 173, 252], [645, 267, 599, 210],
-  [1277, 295, 387, 182], [1699, 262, 463, 214],
-  [128, 245, 813, 339], [1135, 100, 922, 531],
+  [19, 42, 612, 215], [430, 227, 173, 252], [645, 267, 599, 210],
+  [14, 56, 696, 244], [1699, 262, 463, 214],
+  [25, 24, 680, 253], [18, 8, 687, 231],
   [10, 57, 1754, 827],
   [12, 267, 420, 178], [443, 237, 294, 209], [744, 270, 480, 175],
   [1233, 271, 474, 174], [1718, 269, 453, 176],
@@ -444,44 +510,72 @@ const vehicleFrames = [
   [15, 10, 704, 230],
   [81, 3, 581, 283],
   [3, 4, 711, 264],
+  [12, 11, 696, 254],
+  [9, 5, 697, 259],
 ];
 const vehicles = [
-  { width: 181, height: 96 }, { width: 69, height: 101 },
-  { width: 480, height: 168 }, { width: 204, height: 96 },
+  { width: 326, height: 112 }, { width: 69, height: 101 },
+  { width: 480, height: 168 }, { width: 204, height: 70 },
   { width: 365, height: 169 },
-  { width: 208, height: 87 }, { width: 248, height: 143 },
+  { width: 224, height: 83 }, { width: 167, height: 56 },
   { width: 234, height: 110 },
-  { width: 190, height: 80 }, { width: 116, height: 82 }, { width: 212, height: 77 },
+  { width: 190, height: 80 }, { width: 103, height: 73 }, { width: 212, height: 77 },
   { width: 212, height: 78 }, { width: 191, height: 74 },
   { width: 192, height: 82 },
-  { width: 192, height: 64 },
-  { width: 188, height: 60 },
+  { width: 169, height: 56 },
+  { width: 165, height: 53 },
   { width: 148, height: 71 },
   { width: 326, height: 121 },
+  { width: 216, height: 79 },
+  { width: 218, height: 81 },
 ];
 const trafficSpeed = 380;
 const trafficGap = 0.8;
-function trafficPass(scene, time) {
-  if (!scene.traffic?.length) return null;
-  const margin = Math.max(210, ...trafficOrder.map(([, kind]) => vehicles[kind].width / 2 + 10));
-  const firstStart = width + margin;
-  const firstDuration = (firstStart + margin) / trafficSpeed;
+const trafficMargin = Math.max(...vehicles.map(vehicle => vehicle.width / 2 + 10));
+const regularVehicleKinds = vehicles.map((_, kind) => kind)
+  .filter(kind => kind !== etvKind && kind !== beerVanKind);
+
+function trafficPass(scene, time, camera) {
+  if (!scene.traffic) return null;
+  const firstStart = width + trafficMargin;
+  const firstDuration = (firstStart + trafficMargin) / trafficSpeed;
   const elapsed = Math.max(0, time - enteredAt);
-  if (elapsed < firstDuration) {
-    return { vehicle: firstTrafficVehicle, x: firstStart - elapsed * trafficSpeed, active: true };
+  let index = 0;
+  let position = firstStart - elapsed * trafficSpeed;
+  if (elapsed >= firstDuration) {
+    const repeatElapsed = elapsed - firstDuration;
+    const slotDuration = (scene.length + 2 * trafficMargin) / trafficSpeed + trafficGap;
+    const phase = repeatElapsed % slotDuration;
+    if (phase < trafficGap) return null;
+    index = 1 + Math.floor(repeatElapsed / slotDuration);
+    position = scene.length + trafficMargin - (phase - trafficGap) * trafficSpeed;
   }
-  const repeatElapsed = elapsed - firstDuration;
-  const slot = (scene.length + 2 * margin) / trafficSpeed + trafficGap;
-  const phase = repeatElapsed % slot;
-  const nextIndex = Math.floor(repeatElapsed / slot) + (scene.firstVehicle === undefined ? 1 : 0);
-  const vehicle = trafficOrder[nextIndex % trafficOrder.length];
-  return {
-    vehicle,
-    x: scene.length + margin - (phase - trafficGap) * trafficSpeed,
-    active: phase >= trafficGap,
-  };
+
+  if (trafficEntry?.index !== index) {
+    const candidates = index === featuredVehicleSlot ? [scene.featuredVehicle]
+      : regularVehicleKinds.filter(kind => !seenVehicles.has(kind)
+        && (megaUnlocked || !largeVehicleKinds.has(kind)));
+    if (!candidates.length) return null;
+    const kind = candidates[Math.floor(Math.random() * candidates.length)];
+    trafficEntry = { index, vehicle: [0, kind], seen: false };
+  }
+  const kind = trafficEntry.vehicle[1];
+  const halfWidth = vehicles[kind].width / 2;
+  // A car that never enters the viewport remains available in the next scene.
+  if (!trafficEntry.seen && camera !== undefined
+      && position + halfWidth > camera && position - halfWidth < camera + width) {
+    trafficEntry.seen = true;
+    seenVehicles.add(kind);
+  }
+  return { vehicle: trafficEntry.vehicle, x: position, active: true };
 }
-const obstacleHeight = kind => kind === eagleKind ? 67 : kind === 16 || kind === 17 ? 114 : kind === 3 || kind === 12 ? 62 : 76;
+function obstacleHeight(kind) {
+  if (kind === raccoonKind) return 76 * raccoonScale;
+  if (kind === eagleKind) return 67;
+  if (kind === runnerKind) return 114 * runnerScale;
+  if (kind === 17) return 114;
+  return kind === 3 || kind === 12 ? 62 : 76;
+}
 function birdLift(anchor, kind) {
   if (kind === eagleKind) {
     const dive = Math.max(0, Math.cos(clock * 2.45 + anchor)) ** 8;
@@ -502,9 +596,10 @@ function bump() {
     spillHeight = groundY() - y + 60;
     touch.enabled = false;
     clearInput();
+    syncMusic();
   }
 }
-function update(dt) {
+function update(dt, controllerMove = 0) {
   clock += dt;
   if (spillAt !== null) {
     y = Math.min(groundY(), y + 420 * dt);
@@ -520,7 +615,7 @@ function update(dt) {
   const input = touch.sample();
   if (input.jump) pressed.add('jump');
   if (input.interact) pressed.add('action');
-  const move = (Number(active('right')) - Number(active('left'))) || input.move;
+  const move = (Number(active('right')) - Number(active('left'))) || input.move || controllerMove;
   moving = Boolean(move);
   if (level === 0 && moving) apartmentIntroMoved = true;
   if (move) direction = move;
@@ -571,9 +666,10 @@ function update(dt) {
     const obstacle = obstacleX(scene, position, kind);
     if (obstacle === null) continue;
     const bottom = ground - birdLift(position, kind);
-    const enlarged = kind === 16 || kind === 17;
-    const hitWidth = enlarged ? 42 : 33;
-    const hitHeight = enlarged ? obstacleHeight(kind) - 14 : 55;
+    const enlarged = kind === runnerKind || kind === 17;
+    const scale = kind === raccoonKind ? raccoonScale : kind === runnerKind ? runnerScale : 1;
+    const hitWidth = (enlarged ? 42 : 33) * scale;
+    const hitHeight = enlarged ? obstacleHeight(kind) - 14 * scale : 55 * scale;
     if (Math.abs(x - obstacle) < hitWidth && y > bottom - hitHeight && y - 55 < bottom) bump();
   }
   if (spillAt !== null) return;
@@ -807,12 +903,13 @@ function draw() {
     return;
   }
   if (!megaUnlocked && scene.spring !== undefined) drawSpring(scene.spring - camera, ground);
-  const pass = trafficPass(scene, clock);
+  const pass = trafficPass(scene, clock, camera);
   if (pass?.active) {
     const kind = pass.vehicle[1];
     const shape = vehicles[kind];
     const [left, top, sourceWidth, sourceHeight] = vehicleFrames[kind];
-    ctx.drawImage(kind === liftedPickupKind ? liftedPickupArt : kind === keiTruckKind ? keiTruckArt : kind === alfaRomeoKind ? alfaRomeoArt : kind === sportsCarKind ? sportsCarArt : kind === wagonKind ? wagonArt : kind >= 8 ? varietyCars : kind === 7 ? breweryVan : kind >= 5 ? garageVehicleArt : vehicleArt, left, top, sourceWidth, sourceHeight,
+    const residentialArt = kind === redPickupKind ? redPickupArt : kind === policeCarKind ? policeCarArt : vehicleArt;
+    ctx.drawImage(kind === silverSuvKind ? silverSuvArt : kind === whiteCrossoverKind ? whiteCrossoverArt : kind === liftedPickupKind ? liftedPickupArt : kind === keiTruckKind ? keiTruckArt : kind === alfaRomeoKind ? alfaRomeoArt : kind === sportsCarKind ? sportsCarArt : kind === wagonKind ? wagonArt : kind >= 8 ? varietyCars : kind === beerVanKind ? breweryVan : kind === blackSuvKind ? blackSuvArt : kind === yellowTargaKind ? yellowTargaArt : residentialArt, left, top, sourceWidth, sourceHeight,
       pass.x - camera - shape.width / 2, ground - shape.height, shape.width, shape.height);
   }
   const position = scene.pickup ?? scene.door ?? scene.delivery;
@@ -907,7 +1004,8 @@ function draw() {
     ctx.fillText('Traffic from right →', width - 24, 33);
   }
   const mobile = window.matchMedia('(pointer: coarse)').matches;
-  const hint = prompt && near(position) ? ` · ${mobile ? 'Action' : 'F'}: ${prompt}`
+  const actionHint = controllerConnected ? (controllerSwap.checked ? 'A / Cross' : 'X / Square') : mobile ? 'Action' : 'F';
+  const hint = prompt && near(position) ? ` · ${actionHint}: ${prompt}`
     : scene.pickup !== undefined && !carrying && x > scene.pickup + 62 ? ' · Go back for the beer' : '';
   if (clock < tutorialUntil) {
     ctx.fillStyle = '#092038eb';
@@ -920,7 +1018,8 @@ function draw() {
     ctx.fillText('Mega Jump unlocked!', width / 2, 55);
     ctx.font = '15px system-ui';
     ctx.fillStyle = '#fff';
-    ctx.fillText(mobile ? 'Tap Jump twice quickly' : 'Press Space twice quickly', width / 2, 77);
+    const jumpHint = controllerConnected ? (controllerSwap.checked ? 'X / Square' : 'A / Cross') : mobile ? 'Jump' : 'Space';
+    ctx.fillText(`Press ${jumpHint} twice quickly`, width / 2, 77);
   }
   const intro = level === 0 ? (apartmentIntroMoved
     ? ' · Guide him downstairs to Unicorn Beer Distribution to pick up his beer delivery →'
@@ -931,7 +1030,8 @@ function draw() {
 function frame(time) {
   const dt = Math.min(0.033, (time - previousTime) / 1000);
   previousTime = time;
-  if (mode === 'play') update(dt);
+  const controllerMove = readController();
+  if (mode === 'play') update(dt, controllerMove);
   draw();
   requestAnimationFrame(frame);
 }
@@ -985,7 +1085,7 @@ try {
     loadImage('./assets/beer-tray.png'),
     loadImage('./assets/beer-tray-left.png'),
     loadImage('./assets/obstacles/residential-vehicles.png'),
-    loadImage('./assets/obstacles/garage-vehicles.png'),
+    loadImage('./assets/obstacles/yellow-targa.png'),
     loadImage('./assets/obstacles/downtown-cast.png'),
     loadImage('./assets/celebration-toast.png'),
     loadImage('./assets/lil-g-dance.png'),
@@ -999,13 +1099,18 @@ try {
     loadImage('./assets/obstacles/white-alfa-romeo.png'),
     loadImage('./assets/obstacles/white-kei-truck.png'),
     loadImage('./assets/obstacles/lifted-black-pickup.png'),
+    loadImage('./assets/obstacles/red-pickup.png'),
+    loadImage('./assets/obstacles/police-car.png'),
+    loadImage('./assets/obstacles/black-suv.png'),
+    loadImage('./assets/obstacles/white-crossover.png'),
+    loadImage('./assets/obstacles/silver-suv.png'),
     loadImage('./assets/lil-g-collapse.png'),
     ...backdropUrls.map(loadImage),
   ];
   progress.max = resources.length;
   progress.value = 0;
   let loadedBackdrops;
-  [player, carrier, cast, cargo, cargoLeft, vehicleArt, garageVehicleArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, collapseArt, ...loadedBackdrops] = await Promise.all(
+  [player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, collapseArt, ...loadedBackdrops] = await Promise.all(
     resources.map(async resource => {
       const art = await resource;
       progress.value += 1;

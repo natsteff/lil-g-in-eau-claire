@@ -3,10 +3,10 @@
 ![The Great Monkey Beer Run — Lil’ G in Eau Claire](assets/branding/main-logo.png)
 
 <p align="center">
-  <a href="https://natsteff.github.io/lil-g-in-eau-claire/"><img src="docs/play-now.svg" width="400" alt="Play Now! Lil G in EC version 0.1.13"></a>
+  <a href="https://natsteff.github.io/lil-g-in-eau-claire/"><img src="docs/play-now.svg" width="400" alt="Play Now! Lil G in EC version 0.1.14"></a>
 </p>
 
-**Play version 0.1.13** in your browser. Full screen is recommended on desktop. On a phone, add the game to your Home Screen and play in landscape. [Open the game](https://natsteff.github.io/lil-g-in-eau-claire/)
+**Play version 0.1.14** in your browser. Full screen is recommended on desktop. On a phone, add the game to your Home Screen and play in landscape. [Open the game](https://natsteff.github.io/lil-g-in-eau-claire/)
 
 Pick up a towering stack of beer at the Unicorn Beer Distribution and carry it across Eau Claire to **3rd & Vine**. Dodge neighborhood traffic and swooping seagulls, ride on top of passing vehicles, and grab the spring near the start of the Event Center to unlock **Mega Jump**.
 
