@@ -514,7 +514,7 @@ const vehicleFrames = [
   [9, 5, 697, 259],
 ];
 const vehicles = [
-  { width: 326, height: 112 }, { width: 69, height: 101 },
+  { width: 260, height: 90 }, { width: 69, height: 101 },
   { width: 480, height: 168 }, { width: 204, height: 70 },
   { width: 365, height: 169 },
   { width: 224, height: 83 }, { width: 167, height: 56 },
@@ -523,7 +523,7 @@ const vehicles = [
   { width: 212, height: 78 }, { width: 191, height: 74 },
   { width: 192, height: 82 },
   { width: 169, height: 56 },
-  { width: 165, height: 53 },
+  { width: 185, height: 60 },
   { width: 148, height: 71 },
   { width: 326, height: 121 },
   { width: 216, height: 79 },
