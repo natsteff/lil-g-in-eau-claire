@@ -1,7 +1,9 @@
+import { installShareMenu } from './src/share.mjs';
 import { installDialogRotationRecovery } from './src/dialog-rotation.mjs';
 import { installTouchViewport } from './src/touch-viewport.mjs';
 import { checkForUpdate } from './src/updates.mjs?v=0.1.1';
 import { touch } from './src/touch.mjs';
+installShareMenu();
 const canvas = document.querySelector('#game');
 const ctx = canvas.getContext('2d');
 const status = document.querySelector('#status');

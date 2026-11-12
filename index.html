@@ -35,6 +35,15 @@ dialog{color:#fff;background:#10263a;border:1px solid #96bdc9;border-radius:12px
 dialog::backdrop{background:#000a}
 dialog label{display:block;margin:9px 0}
 dialog select{color-scheme:dark;max-width:100%;touch-action:manipulation}
+#share-menu{position:relative;display:inline-block;margin:4px 0}
+#share-menu summary{list-style:none;cursor:pointer;border:1px solid #7b9aae;border-radius:9px;padding:9px 14px;background:#203e57;touch-action:manipulation}
+#share-menu summary::-webkit-details-marker{display:none}
+#share-choices{position:absolute;top:100%;left:0;z-index:2;min-width:200px;padding:6px;background:#10263a;border:1px solid #96bdc9;border-radius:9px;box-shadow:0 6px 16px #0008}
+#share-choices button{display:block;width:100%;text-align:left;touch-action:manipulation}
+#share-choices button+button{margin-top:5px}
+#share-status{margin:4px 0;color:#b8c9d9}
+#share-status:empty{display:none}
+#share-link{width:100%;padding:8px;-webkit-user-select:text;user-select:text}
 fieldset:disabled{opacity:.55}
 #layout-description,#arrow-note{color:#b8c9d9}
 html.touch-play-locked,html.touch-play-locked body{overflow:hidden;overscroll-behavior:none}
@@ -63,6 +72,9 @@ main.expanded canvas{height:100%}
 <form method="dialog">
 <h2>Game menu</h2>
 <div class="tools"><button id="sound" type="button" aria-pressed="true">Sound: On</button><button id="fullscreen" type="button" aria-pressed="false">Full screen</button><button id="pause" type="button">Pause</button><button id="restart" type="button" disabled>Restart</button></div>
+<details id="share-menu"><summary>Share ▾</summary><div id="share-choices"><button type="button" data-share="game">Share game</button><button type="button" data-share="soundtrack">Share soundtrack</button></div></details>
+<p id="share-status" role="status" aria-live="polite"></p>
+<input id="share-link" aria-label="Link to copy" readonly hidden>
 <label>Soundtrack <select id="soundtrack">
 <option value="./assets/audio/pixelated-folk-bon-bons.mp3">Pixelated Folk Bon Bons</option>
 <option value="./assets/audio/retro-ec.mp3">Retro EC</option>
@@ -90,7 +102,7 @@ main.expanded canvas{height:100%}
 <p>On iPhone, open this game in Safari and tap Share → Add to Home Screen → Add. On Android, open it in Chrome and tap ⋮ → Add to Home screen or Install app.</p>
 <p>Open the Lil G in EC icon and turn your phone sideways.</p>
 </details>
-<p id="update-status" role="status">v0.1.15</p>
+<p id="update-status" role="status">v0.1.16</p>
 <label><input id="auto-update" type="checkbox" checked> Automatically check for updates</label>
 <button id="check-updates" type="button">Check for updates</button>
 <button>Done</button>
@@ -98,7 +110,7 @@ main.expanded canvas{height:100%}
 </dialog>
 <div class="stage">
 <canvas id="game" width="960" height="384" aria-label="Lil’ G side-scrolling game"></canvas>
-<section id="menu"><img src="./assets/branding/main-logo.png" alt="The Great Monkey Beer Run — Lil’ G in Eau Claire"><p id="message">Pick up the beer and deliver it across town.</p><div id="loading"><label for="loading-progress">Loading game</label><br><progress id="loading-progress"></progress></div><button id="start" disabled>Start run</button><span id="game-version">v0.1.15</span></section>
+<section id="menu"><img src="./assets/branding/main-logo.png" alt="The Great Monkey Beer Run — Lil’ G in Eau Claire"><p id="message">Pick up the beer and deliver it across town.</p><div id="loading"><label for="loading-progress">Loading game</label><br><progress id="loading-progress"></progress></div><button id="start" disabled>Start run</button><span id="game-version">v0.1.16</span></section>
 <nav aria-label="Game controls">
 <div><div id="touch-arrows"><button data-touch="left" aria-label="Move left">◀</button><button data-touch="right" aria-label="Move right">▶</button></div><div id="touch-stick" role="slider" tabindex="0" aria-label="Movement" aria-valuemin="-100" aria-valuemax="100" hidden></div></div>
 <div><button data-touch="interact">Action</button> <button data-touch="jump">Jump</button></div>
@@ -106,5 +118,5 @@ main.expanded canvas{height:100%}
 </div>
 <small>Move: A/D or arrows · Jump: Space · Action: F · Pause: P · Sound: S · Full screen: V · Restart: R</small>
 </main>
-<script type="module" src="./game.js?v=0.1.15"></script>
+<script type="module" src="./game.js?v=0.1.16"></script>
 </html>
