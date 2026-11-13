@@ -774,10 +774,10 @@ const danceFrames = [
 ];
 function drawDjDancer(ground, elapsed) {
   const beat = elapsed * 6;
-  const size = 148;
+  const size = 200;
   const spriteWidth = size * djDancerArt.width / djDancerArt.height;
   ctx.save();
-  ctx.translate(880 + Math.sin(beat) * 9, ground - Math.abs(Math.sin(beat)) * 7);
+  ctx.translate(866 + Math.sin(beat) * 9, ground - Math.abs(Math.sin(beat)) * 7);
   ctx.rotate(Math.sin(beat * 0.5) * 0.07);
   ctx.scale(1 + Math.sin(beat) * 0.025, 1 - Math.sin(beat) * 0.025);
   ctx.drawImage(djDancerArt, -spriteWidth / 2, -size, spriteWidth, size);
@@ -806,8 +806,8 @@ function drawCelebration(ground) {
   const guestWidth = toastCast.width / 4;
   const guestHeight = toastCast.height / 2;
   const guestPositions = [
-    [92, 7], [322, 13], [610, 9], [839, 15],
-    [203, 0], [446, 2], [728, 0],
+    [82, 7], [282, 13], [530, 9], [725, 15],
+    [180, 0], [390, 2], [630, 0],
   ];
   guestPositions.forEach(([guestX, depth], index) => {
     const sway = Math.sin(elapsed * 5 + index * 0.8) * 0.1;
@@ -822,7 +822,7 @@ function drawCelebration(ground) {
   const beat = Math.floor(elapsed * 5);
   const [left, top, spriteWidth, spriteHeight] = danceFrames[beat % danceFrames.length];
   const displayWidth = 160 * spriteWidth / spriteHeight;
-  const danceX = 584 + Math.sin(elapsed * 5) * 12;
+  const danceX = 520 + Math.sin(elapsed * 5) * 12;
   ctx.drawImage(danceArt, left, top, spriteWidth, spriteHeight,
     danceX - displayWidth / 2, ground - 160, displayWidth, 160);
   if (elapsed < 7.6) {
@@ -957,7 +957,6 @@ function draw() {
     ctx.drawImage(background, 0, strip[0], background.width, strip[1], -camera, 0, scene.length, height);
   } else ctx.drawImage(background, -camera, 0, scene.length, height);
   if (scene.art === 'destination') drawMascotCameo();
-  if (scene.delivery !== undefined && celebrationAt === null) drawDjDancer(ground, clock - enteredAt);
   if (celebrationAt !== null) {
     drawCelebration(ground);
     return;
