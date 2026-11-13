@@ -129,6 +129,7 @@ let enteredAt = 0;
 const seenVehicles = new Set();
 let featuredVehicleSlot;
 let trafficEntry;
+let onewheelCameraSample;
 let tutorialUntil = 0;
 let level = 0;
 let x = route[0].spawn;
@@ -250,6 +251,7 @@ function enter(index) {
   enteredAt = clock;
   featuredVehicleSlot = route[index].featuredVehicle === undefined ? -1 : Math.floor(Math.random() * 2);
   trafficEntry = null;
+  onewheelCameraSample = null;
   riding = null;
   jumpStarted = -Infinity;
   x = route[index].spawn ?? 75;
@@ -550,6 +552,20 @@ function trafficPass(scene, time, camera) {
   let index = 0;
   let position = choreography?.x ?? firstStart - elapsed * trafficSpeed;
   let speed = choreography?.vx ?? -trafficSpeed;
+  const facingSpeed = speed;
+  if (choreography && elapsed < firstDuration) {
+    // Sample once per simulation frame so drawing and collisions use the same path.
+    if (!onewheelCameraSample || time > onewheelCameraSample.time) {
+      const currentCamera = cameraLeft(scene);
+      const previous = onewheelCameraSample;
+      onewheelCameraSample = {
+        time, camera: currentCamera,
+        speed: previous ? (currentCamera - previous.camera) / (time - previous.time) : 0,
+      };
+    }
+    position += onewheelCameraSample.camera;
+    speed += onewheelCameraSample.speed;
+  }
   if (elapsed >= firstDuration) {
     speed = -trafficSpeed;
     const repeatElapsed = elapsed - firstDuration;
@@ -577,7 +593,7 @@ function trafficPass(scene, time, camera) {
     trafficEntry.seen = true;
     seenVehicles.add(kind);
   }
-  return { vehicle: trafficEntry.vehicle, x: position, vx: speed, active: true };
+  return { vehicle: trafficEntry.vehicle, x: position, vx: speed, facingSpeed, active: true };
 }
 function obstacleHeight(kind) {
   if (kind === raccoonKind) return 76 * raccoonScale;
@@ -922,7 +938,7 @@ function draw() {
       const frame = Math.floor(Math.max(0, clock - enteredAt)) % 2;
       ctx.save();
       ctx.translate(pass.x - camera, ground);
-      if (pass.vx > 0) ctx.scale(-1, 1);
+      if (pass.facingSpeed > 0) ctx.scale(-1, 1);
       ctx.drawImage(onewheelArt, frame * frameWidth, 0, frameWidth, onewheelArt.height,
         -shape.width / 2, -shape.height, shape.width, shape.height);
       ctx.restore();

@@ -1,4 +1,4 @@
-// World-space choreography, independent of rendering and the player's camera.
+// Screen-space choreography: the camera offset is applied by the traffic system.
 export function onewheelMotion(elapsed, width, margin) {
   const start = width + margin;
   const middle = width * 0.56;
