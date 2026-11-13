@@ -1,5 +1,5 @@
 import { mascotSprite, hitMascot } from './src/mascot-cameo.mjs?v=0.1.23';
-import { onewheelMotion } from './src/onewheel-motion.mjs?v=0.1.24';
+import { onewheelMotion } from './src/onewheel-motion.mjs?v=0.1.26';
 import { installShareMenu } from './src/share.mjs';
 import { installDialogRotationRecovery } from './src/dialog-rotation.mjs';
 import { installTouchViewport } from './src/touch-viewport.mjs';
@@ -135,7 +135,6 @@ let enteredAt = 0;
 const seenVehicles = new Set();
 let featuredVehicleSlot;
 let trafficEntry;
-let onewheelCameraSample;
 let tutorialUntil = 0;
 let level = 0;
 let x = route[0].spawn;
@@ -258,7 +257,6 @@ function enter(index) {
   enteredAt = clock;
   featuredVehicleSlot = route[index].featuredVehicle === undefined ? -1 : Math.floor(Math.random() * 2);
   trafficEntry = null;
-  onewheelCameraSample = null;
   riding = null;
   jumpStarted = -Infinity;
   x = route[index].spawn ?? 75;
@@ -569,19 +567,6 @@ function trafficPass(scene, time, camera) {
   let speed = choreography?.vx ?? -trafficSpeed;
   const facingSpeed = speed;
   const pose = choreography && elapsed < firstDuration ? choreography.pose : undefined;
-  if (choreography && elapsed < firstDuration) {
-    // Sample once per simulation frame so drawing and collisions use the same path.
-    if (!onewheelCameraSample || time > onewheelCameraSample.time) {
-      const currentCamera = cameraLeft(scene);
-      const previous = onewheelCameraSample;
-      onewheelCameraSample = {
-        time, camera: currentCamera,
-        speed: previous ? (currentCamera - previous.camera) / (time - previous.time) : 0,
-      };
-    }
-    position += onewheelCameraSample.camera;
-    speed += onewheelCameraSample.speed;
-  }
   if (elapsed >= firstDuration) {
     speed = -trafficSpeed;
     const repeatElapsed = elapsed - firstDuration;
