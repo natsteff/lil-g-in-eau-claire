@@ -490,7 +490,10 @@ function updatePedestrianPasses(scene) {
       pedestrianEncore = true;
     }
   }
-  if ([...pedestrianPasses.values()].some(pass => pedestrianX(pass) >= x - 100)) return;
+  // Downtown needs the next entrance before the previous walker is fully behind Lil’ G.
+  // Otherwise the final walker starts only as Lil’ G reaches the scene exit.
+  const entranceClearance = scene.art === 'downtown' ? 180 : -100;
+  if ([...pedestrianPasses.values()].some(pass => pedestrianX(pass) >= x + entranceClearance)) return;
   for (const [anchor, kind] of scene.obstacles) {
     const speed = speeds.get(kind);
     if (!speed || pedestrianPasses.has(kind) || (!pedestrianEncore && x < anchor - 320)) continue;
