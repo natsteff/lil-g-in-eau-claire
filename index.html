@@ -33,6 +33,8 @@ nav button[data-held],#touch-arrows[data-sprint="true"] button[data-held]{backgr
 #menu{z-index:1}
 #options{touch-action:manipulation;flex:none;min-width:44px;min-height:44px}
 dialog{color:#fff;background:#10263a;border:1px solid #96bdc9;border-radius:12px;max-height:90dvh;max-width:90vw}
+#app-install{display:none}
+@media (pointer:coarse){#app-install{display:block}}
 dialog::backdrop{background:#000a}
 dialog label{display:block;margin:9px 0}
 dialog select{color-scheme:dark;max-width:100%;touch-action:manipulation}
@@ -72,6 +74,10 @@ main.expanded canvas{height:100%}
 <dialog id="settings">
 <form method="dialog">
 <h2>Game menu</h2>
+<details id="app-install"><summary>How to add as an app</summary>
+<p>On iPhone, open this game in Safari and tap Share → Add to Home Screen → Add. On Android, open it in Chrome and tap ⋮ → Add to Home screen or Install app.</p>
+<p>Open the Lil G in EC icon and turn your phone sideways.</p>
+</details>
 <div class="tools"><button id="sound" type="button" aria-pressed="true">Sound: On</button><button id="fullscreen" type="button" aria-pressed="false">Full screen</button><button id="pause" type="button">Pause</button><button id="restart" type="button" disabled>Restart</button></div>
 <details id="share-menu"><summary>Share ▾</summary><div id="share-choices"><button type="button" data-share="game">Share game</button><button type="button" data-share="soundtrack">Share soundtrack</button></div></details>
 <p id="share-status" role="status" aria-live="polite"></p>
@@ -99,11 +105,8 @@ main.expanded canvas{height:100%}
 </select></label>
 <p>Move with the D-pad or left stick. A / Cross jumps. X / Square interacts. Start / Options pauses and resumes. Press Jump twice quickly for Mega Jump after you unlock it.</p>
 </details>
-<details><summary>How to add as an app</summary>
-<p>On iPhone, open this game in Safari and tap Share → Add to Home Screen → Add. On Android, open it in Chrome and tap ⋮ → Add to Home screen or Install app.</p>
-<p>Open the Lil G in EC icon and turn your phone sideways.</p>
-</details>
-<p id="update-status" role="status">v0.1.26</p>
+
+<p id="update-status" role="status">v0.1.27</p>
 <label><input id="auto-update" type="checkbox" checked> Automatically check for updates</label>
 <button id="check-updates" type="button">Check for updates</button>
 <button>Done</button>
@@ -111,7 +114,7 @@ main.expanded canvas{height:100%}
 </dialog>
 <div class="stage">
 <canvas id="game" width="960" height="384" aria-label="Lil’ G side-scrolling game"></canvas>
-<section id="menu"><img src="./assets/branding/main-logo.png" alt="The Great Monkey Beer Run — Lil’ G in Eau Claire"><p id="message">Pick up the beer and deliver it across town.</p><div id="loading"><label for="loading-progress">Loading game</label><br><progress id="loading-progress"></progress></div><button id="start" disabled>Start run</button><span id="game-version">v0.1.26</span></section>
+<section id="menu"><img src="./assets/branding/main-logo.png" alt="The Great Monkey Beer Run — Lil’ G in Eau Claire"><p id="message">Pick up the beer and deliver it across town.</p><div id="loading"><label for="loading-progress">Loading game</label><br><progress id="loading-progress"></progress></div><button id="start" disabled>Start run</button><span id="game-version">v0.1.27</span></section>
 <nav aria-label="Game controls">
 <div><div id="touch-arrows"><button data-touch="left" aria-label="Move left">◀</button><button data-touch="right" aria-label="Move right">▶</button></div><div id="touch-stick" role="slider" tabindex="0" aria-label="Movement" aria-valuemin="-100" aria-valuemax="100" hidden></div></div>
 <div><button data-touch="interact">Action</button> <button data-touch="jump">Jump</button></div>
@@ -119,5 +122,5 @@ main.expanded canvas{height:100%}
 </div>
 <small>Move: A/D or arrows · Jump: Space · Action: F · Pause: P · Sound: S · Full screen: V · Restart: R · Toggle controls: C</small>
 </main>
-<script type="module" src="./game.js?v=0.1.26"></script>
+<script type="module" src="./game.js?v=0.1.27"></script>
 </html>

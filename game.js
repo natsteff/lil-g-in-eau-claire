@@ -1051,8 +1051,10 @@ function draw() {
   } else if (carrying) {
     if (invincible && Math.floor(clock * 14) % 2) ctx.globalAlpha = 0.45;
     const [bodyX, feetY, palmX, palmY] = carryAnchors[frame];
-    ctx.drawImage(carrier, frame * 362, 0, 362, 724,
-      -bodyX * carryScale, -feetY * carryScale, 362 * carryScale, 724 * carryScale);
+    // The next cell's tail intrudes into the rising-jump cell's right padding.
+    const sourceWidth = frame === 4 ? 344 : 362;
+    ctx.drawImage(carrier, frame * 362, 0, sourceWidth, 724,
+      -bodyX * carryScale, -feetY * carryScale, sourceWidth * carryScale, 724 * carryScale);
     // Flip the pose and its palm position, while leaving the cargo text readable.
     ctx.scale(direction, 1);
     drawCargo((palmX - bodyX) * carryScale * direction,
