@@ -1,4 +1,5 @@
-import { onewheelMotion } from './src/onewheel-motion.mjs';
+import { mascotCameo } from './src/mascot-cameo.mjs';
+import { onewheelMotion } from './src/onewheel-motion.mjs?v=0.1.20';
 import { installShareMenu } from './src/share.mjs';
 import { installDialogRotationRecovery } from './src/dialog-rotation.mjs';
 import { installTouchViewport } from './src/touch-viewport.mjs';
@@ -121,7 +122,7 @@ function loadImage(url) {
   });
 }
 
-let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, onewheelArt;
+let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, onewheelArt, mascotArt, djDancerArt;
 let megaUnlocked = false;
 let jumpStarted = -Infinity;
 let riding = null;
@@ -553,6 +554,7 @@ function trafficPass(scene, time, camera) {
   let position = choreography?.x ?? firstStart - elapsed * trafficSpeed;
   let speed = choreography?.vx ?? -trafficSpeed;
   const facingSpeed = speed;
+  const pose = choreography && elapsed < firstDuration ? choreography.pose : undefined;
   if (choreography && elapsed < firstDuration) {
     // Sample once per simulation frame so drawing and collisions use the same path.
     if (!onewheelCameraSample || time > onewheelCameraSample.time) {
@@ -593,7 +595,7 @@ function trafficPass(scene, time, camera) {
     trafficEntry.seen = true;
     seenVehicles.add(kind);
   }
-  return { vehicle: trafficEntry.vehicle, x: position, vx: speed, facingSpeed, active: true };
+  return { vehicle: trafficEntry.vehicle, x: position, vx: speed, facingSpeed, pose, active: true };
 }
 function obstacleHeight(kind) {
   if (kind === raccoonKind) return 76 * raccoonScale;
@@ -770,6 +772,34 @@ const danceFrames = [
   [65, 127, 418, 473], [586, 127, 417, 473],
   [1083, 126, 499, 479], [1670, 144, 450, 453],
 ];
+function drawDjDancer(ground, elapsed) {
+  const beat = elapsed * 6;
+  const size = 148;
+  const spriteWidth = size * djDancerArt.width / djDancerArt.height;
+  ctx.save();
+  ctx.translate(880 + Math.sin(beat) * 9, ground - Math.abs(Math.sin(beat)) * 7);
+  ctx.rotate(Math.sin(beat * 0.5) * 0.07);
+  ctx.scale(1 + Math.sin(beat) * 0.025, 1 - Math.sin(beat) * 0.025);
+  ctx.drawImage(djDancerArt, -spriteWidth / 2, -size, spriteWidth, size);
+  ctx.restore();
+}
+
+function drawMascotCameo() {
+  const elapsed = clock - enteredAt;
+  const cameo = mascotCameo(elapsed, width);
+  if (!cameo) return;
+  const frameWidth = mascotArt.width / 2;
+  const size = 78;
+  const spriteWidth = size * frameWidth / mascotArt.height;
+  const bounce = cameo.running ? Math.abs(Math.sin(elapsed * 22)) * 6 : Math.sin(elapsed * 5) * 1.5;
+  ctx.save();
+  ctx.translate(cameo.x, height - 7 - bounce);
+  ctx.rotate(cameo.running ? Math.sin(elapsed * 22) * 0.12 : 0);
+  ctx.drawImage(mascotArt, cameo.back ? frameWidth : 0, 0, frameWidth, mascotArt.height,
+    -spriteWidth / 2, -size, spriteWidth, size);
+  ctx.restore();
+}
+
 function drawCelebration(ground) {
   const elapsed = clock - celebrationAt;
   const guestWidth = toastCast.width / 4;
@@ -787,6 +817,7 @@ function drawCelebration(ground) {
       guestWidth, guestHeight, -98, -196, 196, 196);
     ctx.restore();
   });
+  drawDjDancer(ground, elapsed);
   const beat = Math.floor(elapsed * 5);
   const [left, top, spriteWidth, spriteHeight] = danceFrames[beat % danceFrames.length];
   const displayWidth = 160 * spriteWidth / spriteHeight;
@@ -924,6 +955,8 @@ function draw() {
     const strip = neighborhoodStrips[scene.neighborhood];
     ctx.drawImage(background, 0, strip[0], background.width, strip[1], -camera, 0, scene.length, height);
   } else ctx.drawImage(background, -camera, 0, scene.length, height);
+  if (scene.art === 'destination') drawMascotCameo();
+  if (scene.delivery !== undefined && celebrationAt === null) drawDjDancer(ground, clock - enteredAt);
   if (celebrationAt !== null) {
     drawCelebration(ground);
     return;
@@ -935,7 +968,7 @@ function draw() {
     const shape = vehicles[kind];
     if (kind === onewheelKind) {
       const frameWidth = onewheelArt.width / 2;
-      const frame = Math.floor(Math.max(0, clock - enteredAt)) % 2;
+      const frame = pass.pose ?? Math.floor(Math.max(0, clock - enteredAt)) % 2;
       ctx.save();
       ctx.translate(pass.x - camera, ground);
       if (pass.facingSpeed > 0) ctx.scale(-1, 1);
@@ -1075,7 +1108,8 @@ function frame(time) {
 
 function backdropUrl(scene) {
   return scene.neighborhood !== undefined ? './assets/residential-variants.png'
-    : scene.backdrop ?? `${pack}/backdrops/${scene.art}.png`;
+    : scene.art === 'destination' ? './assets/destination-dj-mchazy.png'
+      : scene.backdrop ?? `${pack}/backdrops/${scene.art}.png`;
 }
 
 const updateToggle = document.querySelector('#auto-update');
@@ -1143,12 +1177,14 @@ try {
     loadImage('./assets/obstacles/silver-suv.png'),
     loadImage('./assets/lil-g-collapse.png'),
     loadImage('./assets/obstacles/onewheel-rider-sheet.png'),
+    loadImage('./assets/mascot-cameo-sheet.png'),
+    loadImage('./assets/dj-mchazy-dancer-preview.png'),
     ...backdropUrls.map(loadImage),
   ];
   progress.max = resources.length;
   progress.value = 0;
   let loadedBackdrops;
-  [player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, collapseArt, onewheelArt, ...loadedBackdrops] = await Promise.all(
+  [player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, collapseArt, onewheelArt, mascotArt, djDancerArt, ...loadedBackdrops] = await Promise.all(
     resources.map(async resource => {
       const art = await resource;
       progress.value += 1;
