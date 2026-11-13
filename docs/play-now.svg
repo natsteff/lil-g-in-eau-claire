@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="400" height="98" viewBox="0 0 400 98" role="img" aria-labelledby="title">
-  <title id="title">Play Now! Lil G in EC v0.1.27</title>
+  <title id="title">Play Now! Lil G in EC v0.1.28</title>
   <rect x="2" y="2" width="396" height="94" rx="16" fill="#102a40" stroke="#83dfd0" stroke-width="3"/>
   <rect x="9" y="9" width="382" height="80" rx="11" fill="#183951" stroke="#42677c"/>
   <circle cx="52" cy="49" r="26" fill="#102a40" stroke="#ffc967" stroke-width="2"/>
@@ -7,5 +7,5 @@
   <text x="94" y="53" fill="#ffc967" font-family="Arial,sans-serif" font-size="29" font-weight="bold">PLAY NOW!</text>
   <text x="95" y="73" fill="#a8ece3" font-family="Arial,sans-serif" font-size="13" font-weight="bold">LIL G IN EAU CLAIRE</text>
   <rect x="312" y="32" width="62" height="23" rx="5" fill="#102a40" stroke="#83dfd0"/>
-  <text x="343" y="48" text-anchor="middle" fill="#ffc967" font-family="Arial,sans-serif" font-size="13" font-weight="bold">v0.1.27</text>
+  <text x="343" y="48" text-anchor="middle" fill="#ffc967" font-family="Arial,sans-serif" font-size="13" font-weight="bold">v0.1.28</text>
 </svg>

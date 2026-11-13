@@ -127,7 +127,7 @@ function loadImage(url) {
   });
 }
 
-let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, onewheelArt, mascotArt, djDancerArt;
+let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, onewheelArt, mascotArt, djDancerArt, billboardArt;
 let megaUnlocked = false;
 let jumpStarted = -Infinity;
 let riding = null;
@@ -739,6 +739,8 @@ function drawCargo(center, base, size, art = cargo) {
   ctx.drawImage(art, center - size / 2, base - tall, size, tall);
 }
 
+// All six bodies fit before x=344; the remaining padding contains neighboring tails.
+const playerFrameWidth = 344;
 const carryScale = 0.19;
 // Body center, feet baseline and palm position within each carrying cell.
 const carryAnchors = [
@@ -771,6 +773,31 @@ const danceFrames = [
   [65, 127, 418, 473], [586, 127, 417, 473],
   [1083, 126, 499, 479], [1670, 144, 450, 453],
 ];
+function drawBillboard(camera) {
+  // Project the supplied artwork directly onto blank siding; preserve its lettering.
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(360 - camera, 180);
+  ctx.lineTo(399 - camera, 175);
+  ctx.lineTo(399 - camera, 219);
+  ctx.lineTo(360 - camera, 224);
+  ctx.closePath();
+  ctx.shadowColor = '#0008';
+  ctx.shadowBlur = 2;
+  ctx.shadowOffsetX = 1;
+  ctx.shadowOffsetY = 1;
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.strokeStyle = '#6e5139';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.transform(39 / billboardArt.width, -5 / billboardArt.width,
+    0, 44 / billboardArt.height, 360 - camera, 180);
+  ctx.drawImage(billboardArt, 0, 0);
+  ctx.restore();
+}
+
 function drawDjDancer(ground, elapsed) {
   const beat = elapsed * 6;
   const size = 200;
@@ -973,7 +1000,10 @@ function draw() {
     const strip = neighborhoodStrips[scene.neighborhood];
     ctx.drawImage(background, 0, strip[0], background.width, strip[1], -camera, 0, scene.length, height);
   } else ctx.drawImage(background, -camera, 0, scene.length, height);
-  if (scene.art === 'destination') drawMascotCameo();
+  if (scene.art === 'destination') {
+    drawBillboard(camera);
+    drawMascotCameo();
+  }
   if (celebrationAt !== null) {
     drawCelebration(ground);
     return;
@@ -1051,8 +1081,7 @@ function draw() {
   } else if (carrying) {
     if (invincible && Math.floor(clock * 14) % 2) ctx.globalAlpha = 0.45;
     const [bodyX, feetY, palmX, palmY] = carryAnchors[frame];
-    // The next cell's tail intrudes into the rising-jump cell's right padding.
-    const sourceWidth = frame === 4 ? 344 : 362;
+    const sourceWidth = playerFrameWidth;
     ctx.drawImage(carrier, frame * 362, 0, sourceWidth, 724,
       -bodyX * carryScale, -feetY * carryScale, sourceWidth * carryScale, 724 * carryScale);
     // Flip the pose and its palm position, while leaving the cargo text readable.
@@ -1061,7 +1090,8 @@ function draw() {
       (palmY - feetY) * carryScale + 2, 84 / playerScale, direction < 0 ? cargoLeft : cargo);
   } else {
     if (invincible && Math.floor(clock * 14) % 2) ctx.globalAlpha = 0.45;
-    ctx.drawImage(player, frame * 362, 0, 362, 724, -27, -84, 54, 108);
+    ctx.drawImage(player, frame * 362, 0, playerFrameWidth, 724,
+      -27, -84, 54 * playerFrameWidth / 362, 108);
   }
   ctx.restore();
   if (spillAt !== null && carrying) drawSpill(x - camera, ground, clock - spillAt);
@@ -1127,8 +1157,7 @@ function frame(time) {
 
 function backdropUrl(scene) {
   return scene.neighborhood !== undefined ? './assets/residential-variants.png'
-    : scene.art === 'destination' ? './assets/destination-dj-mchazy.png'
-      : scene.backdrop ?? `${pack}/backdrops/${scene.art}.png`;
+    : scene.backdrop ?? `${pack}/backdrops/${scene.art}.png`;
 }
 
 const updateToggle = document.querySelector('#auto-update');
@@ -1198,12 +1227,13 @@ try {
     loadImage('./assets/obstacles/onewheel-rider-sheet.png'),
     loadImage('./assets/mascot-cameo-sheet.png'),
     loadImage('./assets/dj-mchazy-dancer-preview.png'),
+    loadImage('./assets/dj-mchazy-billboard-original.png'),
     ...backdropUrls.map(loadImage),
   ];
   progress.max = resources.length;
   progress.value = 0;
   let loadedBackdrops;
-  [player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, collapseArt, onewheelArt, mascotArt, djDancerArt, ...loadedBackdrops] = await Promise.all(
+  [player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, collapseArt, onewheelArt, mascotArt, djDancerArt, billboardArt, ...loadedBackdrops] = await Promise.all(
     resources.map(async resource => {
       const art = await resource;
       progress.value += 1;
