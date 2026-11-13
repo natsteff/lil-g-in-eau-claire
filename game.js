@@ -18,6 +18,8 @@ const pause = document.querySelector('#pause');
 const sound = document.querySelector('#sound');
 const fullscreen = document.querySelector('#fullscreen');
 const shell = document.querySelector('main');
+const touchControls = document.querySelector('nav[aria-label="Game controls"]');
+touchControls.hidden = !(matchMedia('(any-pointer: coarse)').matches || navigator.maxTouchPoints > 0);
 const soundtrack = document.querySelector('#soundtrack');
 const soundtrackKey = 'lil-g-in-ec.soundtrack';
 try {
@@ -301,6 +303,11 @@ window.addEventListener('keydown', event => {
   if (event.code === 'Escape' && shell.classList.contains('expanded')) {
     shell.classList.remove('expanded');
     updateFullscreen();
+  }
+  if (event.code === 'KeyC' && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    event.preventDefault();
+    clearInput();
+    touchControls.hidden = !touchControls.hidden;
   }
   if (event.code === 'KeyR' && !event.repeat && mode !== 'title') restartRun();
   if (event.code === 'KeyS' && !event.repeat) toggleSound();
