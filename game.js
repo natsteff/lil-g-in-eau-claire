@@ -90,6 +90,7 @@ const keiTruckKind = 16;
 const liftedPickupKind = 17;
 const whiteCrossoverKind = 18;
 const silverSuvKind = 19;
+const onewheelKind = 20;
 const largeVehicleKinds = new Set([2, 4, liftedPickupKind]);
 const route = [
   { art: 'apartment', label: 'Apartment', length: 960, spawn: 220 },
@@ -102,7 +103,7 @@ const route = [
   { art: 'downtown', label: 'Downtown', length: 3100, ground: 270, obstacles: [[410, 7], [680, 8], [940, 9], [1220, 4], [1490, 10], [1760, 11], [2030, 12], [2300, 13], [2570, 14], [2840, 0]] },
   { art: 'residential-b', label: 'Residential B1', length: 1640, obstacles: [[450, 2], [1190, 3]], traffic: true },
   { backdrop: './assets/blueberry-place.png', label: 'Blueberry Place', length: 2400, ground: 365,
-    obstacles: [[1120, 17]], traffic: true },
+    obstacles: [[1120, 17]], traffic: true, firstVehicle: onewheelKind },
   { neighborhood: 2, label: 'Residential B2', length: 1580, obstacles: [[470, 1]], traffic: true },
   { backdrop: './assets/brewery.png', label: 'Brewery', length: 2250, ground: 346,
     obstacles: [[1050, 18]], traffic: true, featuredVehicle: beerVanKind },
@@ -119,7 +120,7 @@ function loadImage(url) {
   });
 }
 
-let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt;
+let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, onewheelArt;
 let megaUnlocked = false;
 let jumpStarted = -Infinity;
 let riding = null;
@@ -530,12 +531,13 @@ const vehicles = [
   { width: 326, height: 121 },
   { width: 216, height: 79 },
   { width: 218, height: 81 },
+  { width: 108, height: 127 },
 ];
 const trafficSpeed = 380;
 const trafficGap = 0.8;
 const trafficMargin = Math.max(...vehicles.map(vehicle => vehicle.width / 2 + 10));
 const regularVehicleKinds = vehicles.map((_, kind) => kind)
-  .filter(kind => kind !== etvKind && kind !== beerVanKind);
+  .filter(kind => kind !== etvKind && kind !== beerVanKind && kind !== onewheelKind);
 
 function trafficPass(scene, time, camera) {
   if (!scene.traffic) return null;
@@ -554,7 +556,8 @@ function trafficPass(scene, time, camera) {
   }
 
   if (trafficEntry?.index !== index) {
-    const candidates = index === featuredVehicleSlot ? [scene.featuredVehicle]
+    const candidates = index === 0 && scene.firstVehicle !== undefined ? [scene.firstVehicle]
+      : index === featuredVehicleSlot ? [scene.featuredVehicle]
       : regularVehicleKinds.filter(kind => !seenVehicles.has(kind)
         && (megaUnlocked || !largeVehicleKinds.has(kind)));
     if (!candidates.length) return null;
@@ -909,10 +912,17 @@ function draw() {
   if (pass?.active) {
     const kind = pass.vehicle[1];
     const shape = vehicles[kind];
-    const [left, top, sourceWidth, sourceHeight] = vehicleFrames[kind];
-    const residentialArt = kind === redPickupKind ? redPickupArt : kind === policeCarKind ? policeCarArt : vehicleArt;
-    ctx.drawImage(kind === silverSuvKind ? silverSuvArt : kind === whiteCrossoverKind ? whiteCrossoverArt : kind === liftedPickupKind ? liftedPickupArt : kind === keiTruckKind ? keiTruckArt : kind === alfaRomeoKind ? alfaRomeoArt : kind === sportsCarKind ? sportsCarArt : kind === wagonKind ? wagonArt : kind >= 8 ? varietyCars : kind === beerVanKind ? breweryVan : kind === blackSuvKind ? blackSuvArt : kind === yellowTargaKind ? yellowTargaArt : residentialArt, left, top, sourceWidth, sourceHeight,
-      pass.x - camera - shape.width / 2, ground - shape.height, shape.width, shape.height);
+    if (kind === onewheelKind) {
+      const frameWidth = onewheelArt.width / 2;
+      const frame = Math.floor(Math.max(0, clock - enteredAt)) % 2;
+      ctx.drawImage(onewheelArt, frame * frameWidth, 0, frameWidth, onewheelArt.height,
+        pass.x - camera - shape.width / 2, ground - shape.height, shape.width, shape.height);
+    } else {
+      const [left, top, sourceWidth, sourceHeight] = vehicleFrames[kind];
+      const residentialArt = kind === redPickupKind ? redPickupArt : kind === policeCarKind ? policeCarArt : vehicleArt;
+      ctx.drawImage(kind === silverSuvKind ? silverSuvArt : kind === whiteCrossoverKind ? whiteCrossoverArt : kind === liftedPickupKind ? liftedPickupArt : kind === keiTruckKind ? keiTruckArt : kind === alfaRomeoKind ? alfaRomeoArt : kind === sportsCarKind ? sportsCarArt : kind === wagonKind ? wagonArt : kind >= 8 ? varietyCars : kind === beerVanKind ? breweryVan : kind === blackSuvKind ? blackSuvArt : kind === yellowTargaKind ? yellowTargaArt : residentialArt, left, top, sourceWidth, sourceHeight,
+        pass.x - camera - shape.width / 2, ground - shape.height, shape.width, shape.height);
+    }
   }
   const position = scene.pickup ?? scene.door ?? scene.delivery;
   const prompt = scene.pickup !== undefined
@@ -1107,12 +1117,13 @@ try {
     loadImage('./assets/obstacles/white-crossover.png'),
     loadImage('./assets/obstacles/silver-suv.png'),
     loadImage('./assets/lil-g-collapse.png'),
+    loadImage('./assets/obstacles/onewheel-rider-sheet.png'),
     ...backdropUrls.map(loadImage),
   ];
   progress.max = resources.length;
   progress.value = 0;
   let loadedBackdrops;
-  [player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, collapseArt, ...loadedBackdrops] = await Promise.all(
+  [player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, collapseArt, onewheelArt, ...loadedBackdrops] = await Promise.all(
     resources.map(async resource => {
       const art = await resource;
       progress.value += 1;
