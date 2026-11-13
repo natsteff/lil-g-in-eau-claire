@@ -1,3 +1,4 @@
+import { onewheelMotion } from './src/onewheel-motion.mjs';
 import { installShareMenu } from './src/share.mjs';
 import { installDialogRotationRecovery } from './src/dialog-rotation.mjs';
 import { installTouchViewport } from './src/touch-viewport.mjs';
@@ -542,11 +543,15 @@ const regularVehicleKinds = vehicles.map((_, kind) => kind)
 function trafficPass(scene, time, camera) {
   if (!scene.traffic) return null;
   const firstStart = width + trafficMargin;
-  const firstDuration = (firstStart + trafficMargin) / trafficSpeed;
   const elapsed = Math.max(0, time - enteredAt);
+  const choreography = scene.firstVehicle === onewheelKind
+    ? onewheelMotion(elapsed, width, trafficMargin) : null;
+  const firstDuration = choreography?.duration ?? (firstStart + trafficMargin) / trafficSpeed;
   let index = 0;
-  let position = firstStart - elapsed * trafficSpeed;
+  let position = choreography?.x ?? firstStart - elapsed * trafficSpeed;
+  let speed = choreography?.vx ?? -trafficSpeed;
   if (elapsed >= firstDuration) {
+    speed = -trafficSpeed;
     const repeatElapsed = elapsed - firstDuration;
     const slotDuration = (scene.length + 2 * trafficMargin) / trafficSpeed + trafficGap;
     const phase = repeatElapsed % slotDuration;
@@ -572,7 +577,7 @@ function trafficPass(scene, time, camera) {
     trafficEntry.seen = true;
     seenVehicles.add(kind);
   }
-  return { vehicle: trafficEntry.vehicle, x: position, active: true };
+  return { vehicle: trafficEntry.vehicle, x: position, vx: speed, active: true };
 }
 function obstacleHeight(kind) {
   if (kind === raccoonKind) return 76 * raccoonScale;
@@ -626,7 +631,7 @@ function update(dt, controllerMove = 0) {
   if (move) direction = move;
   const pass = trafficPass(scene, clock);
   if (riding && (!pass?.active || pass.vehicle !== riding)) riding = null;
-  if (riding) x -= trafficSpeed * dt;
+  if (riding) x += pass.vx * dt;
   x = Math.max(18, Math.min(scene.rightLimit ?? scene.length + 24, x + move * (carrying ? 243 : 272) * (input.sprint ? 1.35 : 1) * dt));
   if (riding && Math.abs(x - pass.x) > vehicles[riding[1]].width / 2 + 9) riding = null;
   if (!megaUnlocked && scene.spring !== undefined && Math.abs(x - scene.spring) < 28 && y > ground - 64) {
@@ -915,8 +920,12 @@ function draw() {
     if (kind === onewheelKind) {
       const frameWidth = onewheelArt.width / 2;
       const frame = Math.floor(Math.max(0, clock - enteredAt)) % 2;
+      ctx.save();
+      ctx.translate(pass.x - camera, ground);
+      if (pass.vx > 0) ctx.scale(-1, 1);
       ctx.drawImage(onewheelArt, frame * frameWidth, 0, frameWidth, onewheelArt.height,
-        pass.x - camera - shape.width / 2, ground - shape.height, shape.width, shape.height);
+        -shape.width / 2, -shape.height, shape.width, shape.height);
+      ctx.restore();
     } else {
       const [left, top, sourceWidth, sourceHeight] = vehicleFrames[kind];
       const residentialArt = kind === redPickupKind ? redPickupArt : kind === policeCarKind ? policeCarArt : vehicleArt;
