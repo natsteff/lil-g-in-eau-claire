@@ -536,14 +536,14 @@ const vehicles = [
   { width: 260, height: 90 }, { width: 69, height: 101 },
   { width: 480, height: 168 }, { width: 204, height: 70 },
   { width: 365, height: 169 },
-  { width: 224, height: 83 }, { width: 167, height: 56 },
+  { width: 224, height: 83 }, { width: 167 * 1.15, height: 56 * 1.15 },
   { width: 234, height: 110 },
   { width: 190, height: 80 }, { width: 103, height: 73 }, { width: 212, height: 77 },
   { width: 212, height: 78 }, { width: 191, height: 74 },
   { width: 192, height: 82 },
   { width: 169, height: 56 },
   { width: 185, height: 60 },
-  { width: 148, height: 71 },
+  { width: 148 * 1.15, height: 71 * 1.15 },
   { width: 326, height: 121 },
   { width: 216, height: 79 },
   { width: 218, height: 81 },
@@ -601,6 +601,7 @@ function obstacleHeight(kind) {
   if (kind === eagleKind) return 67;
   if (kind === runnerKind) return 114 * runnerScale;
   if (kind === 17) return 114;
+  if (kind === 18) return 76 * 1.15;
   return kind === 3 || kind === 12 ? 62 : 76;
 }
 function birdLift(anchor, kind) {
@@ -694,7 +695,7 @@ function update(dt, controllerMove = 0) {
     if (obstacle === null) continue;
     const bottom = ground - birdLift(position, kind);
     const enlarged = kind === runnerKind || kind === 17;
-    const scale = kind === raccoonKind ? raccoonScale : kind === runnerKind ? runnerScale : 1;
+    const scale = kind === raccoonKind ? raccoonScale : kind === runnerKind ? runnerScale : kind === 18 ? 1.15 : 1;
     const hitWidth = (enlarged ? 42 : 33) * scale;
     const hitHeight = enlarged ? obstacleHeight(kind) - 14 * scale : 55 * scale;
     if (Math.abs(x - obstacle) < hitWidth && y > bottom - hitHeight && y - 55 < bottom) bump();
@@ -774,27 +775,56 @@ const danceFrames = [
   [1083, 126, 499, 479], [1670, 144, 450, 453],
 ];
 function drawBillboard(camera) {
-  // Project the supplied artwork directly onto blank siding; preserve its lettering.
   ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(360 - camera, 180);
-  ctx.lineTo(399 - camera, 175);
-  ctx.lineTo(399 - camera, 219);
-  ctx.lineTo(360 - camera, 224);
-  ctx.closePath();
-  ctx.shadowColor = '#0008';
+  // A fixed panel on the receding wall, below the windows and clear of the side window.
+  ctx.transform(39 / 100, -5 / 100, 0, 44 / 110, 360 - camera, 180);
+  ctx.shadowColor = '#24170fc0';
   ctx.shadowBlur = 2;
-  ctx.shadowOffsetX = 1;
-  ctx.shadowOffsetY = 1;
-  ctx.fillStyle = '#fff';
-  ctx.fill();
+  ctx.shadowOffsetX = 1.3;
+  ctx.shadowOffsetY = 1.7;
+  ctx.fillStyle = '#59432e';
+  ctx.fillRect(-3, -3, 106, 116);
   ctx.shadowColor = 'transparent';
-  ctx.strokeStyle = '#6e5139';
+  ctx.fillStyle = '#b09970';
+  ctx.fillRect(0, 0, 100, 110);
+  // The original lettering and mascot remain intact beneath a light patina.
+  ctx.drawImage(billboardArt, 4, 4, 92, 102);
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.fillStyle = '#e4c78e';
+  ctx.globalAlpha = 0.45;
+  ctx.fillRect(4, 4, 92, 102);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  const light = ctx.createLinearGradient(0, 0, 100, 110);
+  light.addColorStop(0, '#fff2ce24');
+  light.addColorStop(0.5, '#835a2520');
+  light.addColorStop(1, '#49301b38');
+  ctx.fillStyle = light;
+  ctx.fillRect(0, 0, 100, 110);
+  // Fixed grain and edge wear never shimmer or obscure the wordmark.
+  for (let i = 0; i < 90; i++) {
+    const px = (i * 37 + 11) % 100;
+    const py = (i * 53 + 7) % 110;
+    if (px > 9 && px < 91 && py > 9 && py < 101) continue;
+    ctx.fillStyle = i % 3 ? '#573e2440' : '#ecdbac85';
+    ctx.fillRect(px, py, 0.8 + i % 3, 0.5 + i % 2);
+  }
+  ctx.strokeStyle = '#e6d4a17a';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0.5, 0.5, 99, 109);
+  ctx.strokeStyle = '#513a28';
   ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.transform(39 / billboardArt.width, -5 / billboardArt.width,
-    0, 44 / billboardArt.height, 360 - camera, 180);
-  ctx.drawImage(billboardArt, 0, 0);
+  ctx.strokeRect(-2, -2, 104, 114);
+  for (const [boltX, boltY] of [[3, 3], [97, 3], [3, 107], [97, 107]]) {
+    ctx.fillStyle = '#412e21';
+    ctx.beginPath();
+    ctx.arc(boltX + 0.5, boltY + 0.5, 2.1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#a89a7d';
+    ctx.beginPath();
+    ctx.arc(boltX, boltY, 1.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
