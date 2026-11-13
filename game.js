@@ -127,7 +127,7 @@ function loadImage(url) {
   });
 }
 
-let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, onewheelArt, mascotArt, djDancerArt, billboardArt;
+let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, onewheelArt, mascotArt, djDancerArt, billboardArt, semiArt, busArt;
 let megaUnlocked = false;
 let jumpStarted = -Infinity;
 let riding = null;
@@ -537,20 +537,20 @@ const vehicleFrames = [
 ];
 const vehicles = [
   { width: 260, height: 90 }, { width: 69, height: 101 },
-  { width: 480, height: 168 }, { width: 204, height: 70 },
-  { width: 365, height: 169 },
+  { width: 624, height: 780 * 449 / 2046 }, { width: 204, height: 70 },
+  { width: 424, height: 530 * 533 / 1885 },
   { width: 224, height: 83 }, { width: 167 * 1.15, height: 56 * 1.15 },
   { width: 234, height: 110 },
   { width: 190, height: 80 }, { width: 103, height: 73 }, { width: 212, height: 77 },
   { width: 212, height: 78 }, { width: 191, height: 74 },
-  { width: 192, height: 82 },
+  { width: 210, height: 82 * 210 / 192 },
   { width: 169, height: 56 },
   { width: 185, height: 60 },
-  { width: 148 * 1.15, height: 71 * 1.15 },
-  { width: 326, height: 121 },
+  { width: 145, height: 71 * 145 / 148 },
+  { width: 270, height: 121 * 270 / 326 },
   { width: 216, height: 79 },
   { width: 218, height: 81 },
-  { width: 108, height: 127 },
+  { width: 108 * 104 / 127, height: 104 },
 ];
 const trafficSpeed = 380;
 const trafficGap = 0.8;
@@ -599,12 +599,17 @@ function trafficPass(scene, time, camera) {
   }
   return { vehicle: trafficEntry.vehicle, x: position, vx: speed, facingSpeed, pose, active: true };
 }
+// Deliberate adult variation; children, animals and riding poses are handled separately.
+const humanHeights = new Map([
+  [0, 88], [1, 94], [4, 90], [5, 92], [6, 98],
+  [7, 90], [8, 84], [9, 88], [10, 94], [11, 82], [14, 88], [18, 88],
+]);
 function obstacleHeight(kind) {
   if (kind === raccoonKind) return 76 * raccoonScale;
   if (kind === eagleKind) return 67;
   if (kind === runnerKind) return 114 * runnerScale;
-  if (kind === 17) return 114;
-  if (kind === 18) return 76 * 1.15;
+  if (kind === 17) return 100;
+  if (humanHeights.has(kind)) return humanHeights.get(kind);
   return kind === 3 || kind === 12 ? 62 : 76;
 }
 function birdLift(anchor, kind) {
@@ -698,7 +703,8 @@ function update(dt, controllerMove = 0) {
     if (obstacle === null) continue;
     const bottom = ground - birdLift(position, kind);
     const enlarged = kind === runnerKind || kind === 17;
-    const scale = kind === raccoonKind ? raccoonScale : kind === runnerKind ? runnerScale : kind === 18 ? 1.15 : 1;
+    const scale = kind === raccoonKind ? raccoonScale : kind === runnerKind ? runnerScale
+      : humanHeights.has(kind) ? humanHeights.get(kind) / 76 : 1;
     const hitWidth = (enlarged ? 42 : 33) * scale;
     const hitHeight = enlarged ? obstacleHeight(kind) - 14 * scale : 55 * scale;
     if (Math.abs(x - obstacle) < hitWidth && y > bottom - hitHeight && y - 55 < bottom) bump();
@@ -777,6 +783,21 @@ const danceFrames = [
   [65, 127, 418, 473], [586, 127, 417, 473],
   [1083, 126, 499, 479], [1670, 144, 450, 453],
 ];
+function drawShortenedVehicle(art, crop, shape, center, ground, leftCap, rightCap) {
+  const [sx, sy, sw, sh] = crop;
+  const scale = shape.height / sh;
+  const leftWidth = leftCap * scale;
+  const rightWidth = rightCap * scale;
+  const x = center - shape.width / 2;
+  const y = ground - shape.height;
+  // Keep the cab and wheel sections at their original scale; shorten only the body between them.
+  ctx.drawImage(art, sx, sy, leftCap, sh, x, y, leftWidth, shape.height);
+  ctx.drawImage(art, sx + leftCap, sy, sw - leftCap - rightCap, sh,
+    x + leftWidth, y, shape.width - leftWidth - rightWidth, shape.height);
+  ctx.drawImage(art, sx + sw - rightCap, sy, rightCap, sh,
+    x + shape.width - rightWidth, y, rightWidth, shape.height);
+}
+
 function drawBillboard(camera) {
   ctx.save();
   // A fixed panel on the receding wall, below the windows and clear of the side window.
@@ -1055,6 +1076,12 @@ function draw() {
       ctx.drawImage(onewheelArt, frame * frameWidth, 0, frameWidth, onewheelArt.height,
         -shape.width / 2, -shape.height, shape.width, shape.height);
       ctx.restore();
+    } else if (kind === 2 || kind === 4) {
+      const art = kind === 2 ? semiArt : busArt;
+      const [left, top, sourceWidth, sourceHeight] = kind === 2
+        ? [61, 143, 2046, 449] : [129, 125, 1885, 533];
+      drawShortenedVehicle(art, [left, top, sourceWidth, sourceHeight], shape,
+        pass.x - camera, ground, kind === 2 ? 850 : 620, kind === 2 ? 440 : 620);
     } else {
       const [left, top, sourceWidth, sourceHeight] = vehicleFrames[kind];
       const residentialArt = kind === redPickupKind ? redPickupArt : kind === policeCarKind ? policeCarArt : vehicleArt;
@@ -1261,12 +1288,14 @@ try {
     loadImage('./assets/mascot-cameo-sheet.png'),
     loadImage('./assets/dj-mchazy-dancer-preview.png'),
     loadImage('./assets/dj-mchazy-billboard-original.png'),
+    loadImage('./assets/obstacles/semi-long.png'),
+    loadImage('./assets/obstacles/city-bus-long.png'),
     ...backdropUrls.map(loadImage),
   ];
   progress.max = resources.length;
   progress.value = 0;
   let loadedBackdrops;
-  [player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, collapseArt, onewheelArt, mascotArt, djDancerArt, billboardArt, ...loadedBackdrops] = await Promise.all(
+  [player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, collapseArt, onewheelArt, mascotArt, djDancerArt, billboardArt, semiArt, busArt, ...loadedBackdrops] = await Promise.all(
     resources.map(async resource => {
       const art = await resource;
       progress.value += 1;
