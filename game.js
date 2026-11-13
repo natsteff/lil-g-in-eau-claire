@@ -1,5 +1,5 @@
 import { mascotCameo } from './src/mascot-cameo.mjs';
-import { onewheelMotion } from './src/onewheel-motion.mjs?v=0.1.20';
+import { onewheelMotion } from './src/onewheel-motion.mjs?v=0.1.21';
 import { installShareMenu } from './src/share.mjs';
 import { installDialogRotationRecovery } from './src/dialog-rotation.mjs';
 import { installTouchViewport } from './src/touch-viewport.mjs';
@@ -793,7 +793,8 @@ function drawMascotCameo() {
   const spriteWidth = size * frameWidth / mascotArt.height;
   const bounce = cameo.running ? Math.abs(Math.sin(elapsed * 22)) * 6 : Math.sin(elapsed * 5) * 1.5;
   ctx.save();
-  ctx.translate(cameo.x, height - 7 - bounce);
+  // Follow the lower Chick-A-Doo sidewalk, above the mobile controls.
+  ctx.translate(cameo.x, height * 0.76 - bounce);
   ctx.rotate(cameo.running ? Math.sin(elapsed * 22) * 0.12 : 0);
   ctx.drawImage(mascotArt, cameo.back ? frameWidth : 0, 0, frameWidth, mascotArt.height,
     -spriteWidth / 2, -size, spriteWidth, size);
