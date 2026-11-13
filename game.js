@@ -1,4 +1,4 @@
-import { mascotCameo } from './src/mascot-cameo.mjs';
+import { mascotSprite, hitMascot } from './src/mascot-cameo.mjs?v=0.1.23';
 import { onewheelMotion } from './src/onewheel-motion.mjs?v=0.1.21';
 import { installShareMenu } from './src/share.mjs';
 import { installDialogRotationRecovery } from './src/dialog-rotation.mjs';
@@ -71,6 +71,9 @@ finaleMusic.volume = music.volume;
 finaleMusic.loop = true;
 const failureMusic = new Audio('./assets/audio/the-beer-has-fallen.mp3');
 failureMusic.volume = music.volume;
+const mascotLaugh = new Audio('./assets/audio/mascot-laugh.mp3');
+mascotLaugh.volume = 0.75;
+let djDancerUnlocked = false;
 let celebrationAt = null;
 let soundOn = true;
 const width = canvas.width;
@@ -178,6 +181,7 @@ function syncMusic() {
     if (otherTrack !== track) otherTrack.pause();
   }
   if (!soundOn || mode !== 'play' || failed) for (const effect of jumpSounds) effect.pause();
+  if (!soundOn || mode !== 'play') mascotLaugh.pause();
   const canPlay = () => soundOn && (mode === 'play' || (failed && mode === 'failed'));
   if (canPlay() && !(failed && track.ended)) {
     track.play().catch(() => {
@@ -274,6 +278,9 @@ function restartRun() {
   megaUnlocked = false;
   tutorialUntil = 0;
   celebrationAt = null;
+  djDancerUnlocked = false;
+  mascotLaugh.pause();
+  mascotLaugh.currentTime = 0;
   failureMusic.pause();
   failureMusic.currentTime = 0;
   finaleMusic.currentTime = 0;
@@ -784,20 +791,38 @@ function drawDjDancer(ground, elapsed) {
   ctx.restore();
 }
 
+function currentMascotSprite() {
+  if (mode !== 'play' || settings.open || route[level].art !== 'destination' || !mascotArt) return null;
+  return mascotSprite(clock - enteredAt, width, height, mascotArt.width / 2 / mascotArt.height);
+}
+
+let mascotTap;
+canvas.addEventListener('pointerdown', event => {
+  if (event.button !== 0 || event.isPrimary === false) return;
+  mascotTap = { id: event.pointerId, x: event.clientX, y: event.clientY };
+});
+canvas.addEventListener('pointercancel', () => { mascotTap = null; });
+canvas.addEventListener('pointerup', event => {
+  const tap = mascotTap;
+  mascotTap = null;
+  if (!tap || tap.id !== event.pointerId || Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 14) return;
+  if (!hitMascot(currentMascotSprite(), event.clientX, event.clientY, canvas.getBoundingClientRect(), width, height)) return;
+  djDancerUnlocked = true;
+  if (soundOn) {
+    mascotLaugh.currentTime = 0;
+    void mascotLaugh.play().catch(() => {});
+  }
+});
+
 function drawMascotCameo() {
-  const elapsed = clock - enteredAt;
-  const cameo = mascotCameo(elapsed, width);
-  if (!cameo) return;
+  const sprite = currentMascotSprite();
+  if (!sprite) return;
   const frameWidth = mascotArt.width / 2;
-  const size = 78;
-  const spriteWidth = size * frameWidth / mascotArt.height;
-  const bounce = cameo.running ? Math.abs(Math.sin(elapsed * 22)) * 6 : Math.sin(elapsed * 5) * 1.5;
   ctx.save();
-  // Follow the lower Chick-A-Doo sidewalk, above the mobile controls.
-  ctx.translate(cameo.x, height * 0.76 - bounce);
-  ctx.rotate(cameo.running ? Math.sin(elapsed * 22) * 0.12 : 0);
-  ctx.drawImage(mascotArt, cameo.back ? frameWidth : 0, 0, frameWidth, mascotArt.height,
-    -spriteWidth / 2, -size, spriteWidth, size);
+  ctx.translate(sprite.x, sprite.y);
+  ctx.rotate(sprite.angle);
+  ctx.drawImage(mascotArt, sprite.back ? frameWidth : 0, 0, frameWidth, mascotArt.height,
+    -sprite.width / 2, -sprite.height, sprite.width, sprite.height);
   ctx.restore();
 }
 
@@ -818,7 +843,7 @@ function drawCelebration(ground) {
       guestWidth, guestHeight, -98, -196, 196, 196);
     ctx.restore();
   });
-  drawDjDancer(ground, elapsed);
+  if (djDancerUnlocked) drawDjDancer(ground, elapsed);
   const beat = Math.floor(elapsed * 5);
   const [left, top, spriteWidth, spriteHeight] = danceFrames[beat % danceFrames.length];
   const displayWidth = 160 * spriteWidth / spriteHeight;
