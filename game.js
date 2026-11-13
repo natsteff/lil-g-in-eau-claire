@@ -1,5 +1,5 @@
 import { mascotSprite, hitMascot } from './src/mascot-cameo.mjs?v=0.1.23';
-import { onewheelMotion } from './src/onewheel-motion.mjs?v=0.1.21';
+import { onewheelMotion } from './src/onewheel-motion.mjs?v=0.1.24';
 import { installShareMenu } from './src/share.mjs';
 import { installDialogRotationRecovery } from './src/dialog-rotation.mjs';
 import { installTouchViewport } from './src/touch-viewport.mjs';
