@@ -1,3 +1,4 @@
+import { neutralState, atNeutral, detectDirection, readDirections } from './src/gamepad-directions.mjs';
 import { createControllerMenu } from './src/controller-menu.mjs';
 import { mascotSprite, hitMascot } from './src/mascot-cameo.mjs?v=0.1.23';
 import { onewheelMotion } from './src/onewheel-motion.mjs?v=0.1.26';
@@ -385,6 +386,75 @@ for (const control of [controllerEnabled, controllerSwap, controllerDeadzone]) {
   });
 }
 
+const controllerStatus = document.querySelector('#controller-status');
+const controllerSetupStatus = document.querySelector('#controller-setup-status');
+const controllerCalibrate = document.querySelector('#controller-calibrate');
+const controllerProfilesKey = 'lil-g-in-ec.controller-directions.v1';
+let controllerProfiles = {};
+try {
+  const saved = JSON.parse(localStorage.getItem(controllerProfilesKey));
+  if (saved && typeof saved === 'object' && !Array.isArray(saved)) controllerProfiles = saved;
+} catch {}
+let directionSetup = null;
+controllerCalibrate.onclick = () => {
+  directionSetup = directionSetup ? null : { step: 0, neutral: null, bindings: {}, waiting: false };
+  controllerCalibrate.textContent = directionSetup ? 'Cancel D-pad setup' : 'Configure D-pad';
+  controllerSetupStatus.textContent = directionSetup ? 'Release all controls to begin.' : 'Setup cancelled.';
+  clearInput();
+};
+settings.addEventListener('close', () => {
+  directionSetup = null;
+  controllerCalibrate.textContent = 'Configure D-pad';
+});
+function updateControllerSetup(pad) {
+  if (settings.open) {
+    const raw = pad ? `${pad.id} · ${pad.mapping || 'custom'} · Buttons: ${pad.buttons.map((b, i) => b.pressed ? i : null).filter(i => i !== null).join(', ') || 'none'} · Axes: ${Array.from(pad.axes, n => n.toFixed(2)).join(', ') || 'none'}`
+      : 'No controller detected. Press a button on your controller.';
+    if (controllerStatus.textContent !== raw) controllerStatus.textContent = raw;
+  }
+  if (!directionSetup || !settings.open) return false;
+  if (!pad) return true;
+  const setup = directionSetup;
+  if (setup.id && setup.id !== pad.id) {
+    controllerSetupStatus.textContent = 'Reconnect the controller used to begin setup.';
+    return true;
+  }
+  const order = ['left', 'right', 'up', 'down'];
+  if (!setup.neutral) {
+    if (pad.buttons.some(button => button.pressed)) return true;
+    setup.id = pad.id;
+    setup.neutral = neutralState(pad);
+    controllerSetupStatus.textContent = 'Press D-pad LEFT, then release.';
+    return true;
+  }
+  if (setup.waiting) {
+    if (!atNeutral(pad, setup.neutral)) return true;
+    setup.waiting = false;
+    if (setup.step === order.length) {
+      controllerProfiles[pad.id] = { id: pad.id, bindings: setup.bindings };
+      let saved = true;
+      try { localStorage.setItem(controllerProfilesKey, JSON.stringify(controllerProfiles)); } catch { saved = false; }
+      directionSetup = null;
+      controllerCalibrate.textContent = 'Configure D-pad';
+      controllerSetupStatus.textContent = saved ? 'D-pad saved for this controller on this browser.' : 'D-pad configured for this session; browser storage is unavailable.';
+      return true;
+    }
+    controllerSetupStatus.textContent = `Press D-pad ${order[setup.step].toUpperCase()}, then release.`;
+    return true;
+  }
+  const binding = detectDirection(pad, setup.neutral);
+  if (binding) {
+    if (Object.values(setup.bindings).some(previous => JSON.stringify(previous) === JSON.stringify(binding))) {
+      controllerSetupStatus.textContent = `That input is already assigned. Release, then press ${order[setup.step].toUpperCase()}.`;
+      return true;
+    }
+    setup.bindings[order[setup.step++]] = binding;
+    setup.waiting = true;
+    controllerSetupStatus.textContent = 'Release the D-pad.';
+  }
+  return true;
+}
+
 let controllerConnected = false;
 let controllerButtons = {};
 const controllerMenu = createControllerMenu(settings);
@@ -393,27 +463,31 @@ function readController() {
   if (controllerEnabled.checked || settings.open) {
     try {
       pad = Array.from(navigator.getGamepads?.() ?? [])
-        .find(device => device?.connected && device.mapping === 'standard');
+        .filter(device => device?.connected)
+        .sort((a, b) => Number(b.mapping === 'standard') - Number(a.mapping === 'standard'))[0];
     } catch {}
   }
   controllerConnected = Boolean(pad);
   const down = index => Boolean(pad?.buttons[index]?.pressed);
   const deadzone = Number(controllerDeadzone.value);
-  const axis = pad?.axes[0] ?? 0;
-  const vertical = pad?.axes[1] ?? 0;
+  const directions = readDirections(pad, deadzone, controllerProfiles[pad?.id]);
+  const compact = pad && pad.mapping !== 'standard' && pad.buttons.length <= 8;
+  const actionButton = compact ? 1 : 2;
   const buttons = {
-    jump: down(controllerSwap.checked ? 2 : 0),
-    action: down(controllerSwap.checked ? 0 : 2),
-    confirm: down(0), back: down(1), restart: down(3), menu: down(8), pause: down(9),
-    up: down(12) || vertical < -deadzone, down: down(13) || vertical > deadzone,
-    left: down(14) || axis < -deadzone, right: down(15) || axis > deadzone,
+    jump: down(controllerSwap.checked ? actionButton : 0),
+    action: down(controllerSwap.checked ? 0 : actionButton),
+    confirm: down(0), back: down(1), restart: !compact && down(3),
+    menu: down(compact ? 2 : 8), pause: down(compact ? 3 : 9),
+    ...directions,
   };
   const edge = name => buttons[name] && !controllerButtons[name];
   const jump = edge('jump'), action = edge('action');
   const actions = { ...buttons, confirm: edge('confirm'), back: edge('back'),
     restart: edge('restart'), menu: edge('menu'), pause: edge('pause') };
   controllerButtons = buttons;
-  if (!pad || document.hidden || !document.hasFocus()) return 0;
+  if (document.hidden || !document.hasFocus()) return 0;
+  if (updateControllerSetup(pad)) return 0;
+  if (!pad) return 0;
   if (settings.open) {
     controllerMenu.handle(actions);
     return 0;
@@ -437,8 +511,7 @@ function readController() {
   }
   if (jump) pressed.add('jump');
   if (action) pressed.add('action');
-  const dpad = Number(down(15)) - Number(down(14));
-  return dpad || (Math.abs(axis) >= deadzone ? Math.sign(axis) : 0);
+  return Number(directions.right) - Number(directions.left);
 }
 
 let resumeAfterSettings = false;

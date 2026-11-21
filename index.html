@@ -100,6 +100,10 @@ main.expanded canvas{height:100%}
 <details><summary>Controller options</summary>
 <label><input id="controller-enabled" type="checkbox" checked> Enable controller</label>
 <label><input id="controller-swap" type="checkbox"> Swap Jump and Action buttons</label>
+<button id="controller-calibrate" type="button">Configure D-pad</button>
+<p id="controller-setup-status" role="status"></p>
+<p id="controller-status" style="overflow-wrap:anywhere;font-size:12px"></p>
+<p>If the D-pad does not move Lil’ G, choose Configure D-pad, release all controls, then press and release Left, Right, Up, and Down as prompted. Setup is saved for that controller in this browser. For compact four-button USB pads: Select opens the menu, Start pauses/resumes, and the two face buttons provide Jump/Action (use Swap if needed).</p>
 <label>Stick dead zone <select id="controller-deadzone">
 <option value="0.15">Small</option>
 <option value="0.25" selected>Medium</option>
@@ -108,7 +112,7 @@ main.expanded canvas{height:100%}
 <p>Move with the D-pad or left stick. A / Cross jumps. X / Square interacts. Start / Options pauses and resumes. View / Share opens the game menu. Y / Triangle opens the menu with Restart selected; A / Cross confirms. In menus: D-pad or stick navigates, left/right adjusts settings, A / Cross selects, B / Circle goes back. Press Jump twice quickly for Mega Jump after you unlock it. B / Circle activates the Chick-A-Doo mascot while it is visible.</p>
 </details>
 
-<p id="update-status" role="status">v0.1.33</p>
+<p id="update-status" role="status">v0.1.34</p>
 <label><input id="auto-update" type="checkbox" checked> Automatically check for updates</label>
 <button id="check-updates" type="button">Check for updates</button>
 <button>Done</button>
@@ -116,7 +120,7 @@ main.expanded canvas{height:100%}
 </dialog>
 <div class="stage">
 <canvas id="game" width="960" height="384" aria-label="Lil’ G side-scrolling game"></canvas>
-<section id="menu"><img src="./assets/branding/main-logo.png" alt="The Great Monkey Beer Run — Lil’ G in Eau Claire"><p id="message">Pick up the beer and deliver it across town.</p><div id="loading"><label for="loading-progress">Loading game</label><br><progress id="loading-progress"></progress></div><button id="start" disabled>Start run</button><span id="game-version">v0.1.33</span></section>
+<section id="menu"><img src="./assets/branding/main-logo.png" alt="The Great Monkey Beer Run — Lil’ G in Eau Claire"><p id="message">Pick up the beer and deliver it across town.</p><div id="loading"><label for="loading-progress">Loading game</label><br><progress id="loading-progress"></progress></div><button id="start" disabled>Start run</button><span id="game-version">v0.1.34</span></section>
 <nav aria-label="Game controls">
 <div><div id="touch-arrows"><button data-touch="left" aria-label="Move left">◀</button><button data-touch="right" aria-label="Move right">▶</button></div><div id="touch-stick" role="slider" tabindex="0" aria-label="Movement" aria-valuemin="-100" aria-valuemax="100" hidden></div></div>
 <div><button data-touch="interact">Action</button> <button data-touch="jump">Jump</button></div>
@@ -124,5 +128,5 @@ main.expanded canvas{height:100%}
 </div>
 <small>Move: A/D or arrows · Jump: Space · Action: F · Pause: P · Sound: S · Full screen: V · Restart: R · Toggle controls: C</small>
 </main>
-<script type="module" src="./game.js?v=0.1.33"></script>
+<script type="module" src="./game.js?v=0.1.34"></script>
 </html>
