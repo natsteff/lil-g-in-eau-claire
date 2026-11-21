@@ -512,12 +512,13 @@ function readController() {
     action: down(controllerSwap.checked ? 0 : actionButton),
     confirm: down(0), back: down(1), restart: !compact && down(3),
     menu: down(compact ? 2 : 8), pause: down(compact ? 3 : 9),
+    poke: down(7) || (pad?.buttons[7]?.value ?? 0) > 0.5,
     ...directions,
   };
   const edge = name => buttons[name] && !controllerButtons[name];
   const jump = edge('jump'), action = edge('action');
   const actions = { ...buttons, confirm: edge('confirm'), back: edge('back'),
-    restart: edge('restart'), menu: edge('menu'), pause: edge('pause') };
+    restart: edge('restart'), menu: edge('menu'), pause: edge('pause'), poke: edge('poke') };
   controllerButtons = buttons;
   if (document.hidden || !document.hasFocus()) return 0;
   if (updateControllerSetup(pad)) return 0;
@@ -539,9 +540,9 @@ function readController() {
     togglePause();
     return 0;
   }
-  if (actions.back && currentMascotSprite()) {
-    activateMascot();
-    return 0;
+  if (actions.poke) {
+    const sprite = currentMascotSprite();
+    if (sprite && !sprite.running) activateMascot();
   }
   if (jump) pressed.add('jump');
   if (action) pressed.add('action');
