@@ -44,3 +44,10 @@ export function readDirections(pad, deadzone, profile) {
     down: down(13) || (verticalValid && vertical > deadzone),
   };
 }
+
+export function chooseGamepad(pads, preferredId = '') {
+  const connected = Array.from(pads ?? []).filter(pad => pad?.connected);
+  // An explicit selection must never silently fall back to a different device.
+  if (preferredId) return connected.find(pad => pad.id === preferredId);
+  return connected.find(pad => pad.mapping === 'standard') ?? connected[0];
+}

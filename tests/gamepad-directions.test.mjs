@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { neutralState, atNeutral, detectDirection, readDirections } from '../src/gamepad-directions.mjs';
+import { neutralState, atNeutral, detectDirection, readDirections, chooseGamepad } from '../src/gamepad-directions.mjs';
 const makePad = (axes, count = 16) => ({ id: 'USB NES pad', axes,
   buttons: Array.from({ length: count }, () => ({ pressed: false })) });
 const standard = makePad([0, 0]);
@@ -45,3 +45,10 @@ axesPad.id = 'other device';
 axesPad.axes[0] = 0.7;
 assert(readDirections(axesPad, 0.25, profile).right, 'profiles are isolated by controller ID');
 export const result = 'Standard D-pad/stick, raw buttons, alternate hat axis, calibration capture/release, saved profiles, dead zone and neutral checks passed';
+
+const modern = { id: 'GamePad-1', connected: true, mapping: 'standard' };
+const nes = { id: 'USB Gamepad', connected: true, mapping: '' };
+assert.equal(chooseGamepad([null, nes, modern]), modern);
+assert.equal(chooseGamepad([modern, nes], nes.id), nes);
+assert.equal(chooseGamepad([modern], nes.id), undefined, 'never switch silently to another controller');
+assert.equal(chooseGamepad([nes]), nes);

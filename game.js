@@ -1,4 +1,4 @@
-import { neutralState, atNeutral, detectDirection, readDirections } from './src/gamepad-directions.mjs';
+import { neutralState, atNeutral, detectDirection, readDirections, chooseGamepad } from './src/gamepad-directions.mjs?v=0.1.35';
 import { createControllerMenu } from './src/controller-menu.mjs';
 import { mascotSprite, hitMascot } from './src/mascot-cameo.mjs?v=0.1.23';
 import { onewheelMotion } from './src/onewheel-motion.mjs?v=0.1.26';
@@ -386,6 +386,40 @@ for (const control of [controllerEnabled, controllerSwap, controllerDeadzone]) {
   });
 }
 
+const controllerSelect = document.querySelector('#controller-device');
+const controllerDeviceKey = 'lil-g-in-ec.controller-device.v1';
+let preferredController = '';
+try { preferredController = localStorage.getItem(controllerDeviceKey) || ''; } catch {}
+let controllerListSignature = '';
+function updateControllerChoices(pads) {
+  const connected = Array.from(pads).filter(pad => pad?.connected);
+  const signature = JSON.stringify([preferredController, connected.map(pad => [pad.id, pad.mapping])]);
+  if (signature === controllerListSignature) return;
+  controllerListSignature = signature;
+  const option = (value, label) => {
+    const element = document.createElement('option');
+    element.value = value;
+    element.textContent = label;
+    return element;
+  };
+  const choices = [option('', 'Automatic')];
+  for (const pad of connected) choices.push(option(pad.id, `${pad.id} (${pad.mapping || 'custom'})`));
+  if (preferredController && !connected.some(pad => pad.id === preferredController)) {
+    choices.push(option(preferredController, `${preferredController} (not connected)`));
+  }
+  controllerSelect.replaceChildren(...choices);
+  controllerSelect.value = preferredController;
+}
+controllerSelect.onchange = () => {
+  preferredController = controllerSelect.value;
+  try { localStorage.setItem(controllerDeviceKey, preferredController); } catch {}
+  directionSetup = null;
+  controllerCalibrate.textContent = 'Configure D-pad';
+  controllerSetupStatus.textContent = 'Controller selected. Release all controls before starting D-pad setup.';
+  controllerButtons = {};
+  clearInput();
+};
+
 const controllerStatus = document.querySelector('#controller-status');
 const controllerSetupStatus = document.querySelector('#controller-setup-status');
 const controllerCalibrate = document.querySelector('#controller-calibrate');
@@ -462,9 +496,9 @@ function readController() {
   let pad;
   if (controllerEnabled.checked || settings.open) {
     try {
-      pad = Array.from(navigator.getGamepads?.() ?? [])
-        .filter(device => device?.connected)
-        .sort((a, b) => Number(b.mapping === 'standard') - Number(a.mapping === 'standard'))[0];
+      const devices = navigator.getGamepads?.() ?? [];
+      updateControllerChoices(devices);
+      pad = chooseGamepad(devices, preferredController);
     } catch {}
   }
   controllerConnected = Boolean(pad);

@@ -3,10 +3,10 @@
 ![The Great Monkey Beer Run — Lil’ G in Eau Claire](assets/branding/main-logo.png)
 
 <p align="center">
-  <a href="https://natsteff.github.io/lil-g-in-eau-claire/"><img src="docs/play-now.svg" width="400" alt="Play Now! Lil G in EC version 0.1.34"></a>
+  <a href="https://natsteff.github.io/lil-g-in-eau-claire/"><img src="docs/play-now.svg" width="400" alt="Play Now! Lil G in EC version 0.1.35"></a>
 </p>
 
-**Play version 0.1.34** in your browser. Full screen is recommended on desktop. On a phone, add the game to your Home Screen and play in landscape. [Open the game](https://natsteff.github.io/lil-g-in-eau-claire/)
+**Play version 0.1.35** in your browser. Full screen is recommended on desktop. On a phone, add the game to your Home Screen and play in landscape. [Open the game](https://natsteff.github.io/lil-g-in-eau-claire/)
 
 Pick up a towering stack of beer at the Unicorn Beer Distribution and carry it across Eau Claire to **3rd & Vine**. Dodge neighborhood traffic and swooping seagulls, ride on top of passing vehicles, and grab the spring near the start of the Event Center to unlock **Mega Jump**.
 
@@ -42,6 +42,6 @@ Use the Chromium executable/wrapper installed in that Batocera setup. The launch
 
 ## USB / NES-style D-pad setup
 
-If a controller’s face buttons work but its D-pad does not, open **Game menu → Controller options → Configure D-pad** with the mouse. Release all controls, then press and release **Left, Right, Up, Down** as prompted. The game saves the mapping for that controller in that browser. Setup supports D-pad buttons, alternate axes, and hat-switch values. Live controller details show the USB name, mapping, pressed buttons, and axes for troubleshooting.
+If a controller’s face buttons work but its D-pad does not, open **Game menu → Controller options** with the mouse, choose the intended USB pad in **Controller**, then choose **Configure D-pad**. Explicit device selection is saved in this browser and will not fall back to another connected controller. Release all controls, then press and release **Left, Right, Up, Down** as prompted. The game saves the mapping for that controller in that browser. Setup supports D-pad buttons, alternate axes, and hat-switch values. Live controller details show the USB name, mapping, pressed buttons, and axes for troubleshooting.
 
 Nonstandard compact USB pads use their first two face buttons for Jump/Action (use Swap if needed), Select for the menu, and Start for pause/resume. Standard-mapped controllers retain their existing defaults. A physical-device playtest is still needed for each unusual controller/browser combination.
