@@ -1,3 +1,4 @@
+import { createControllerMenu } from './src/controller-menu.mjs';
 import { mascotSprite, hitMascot } from './src/mascot-cameo.mjs?v=0.1.23';
 import { onewheelMotion } from './src/onewheel-motion.mjs?v=0.1.26';
 import { installShareMenu } from './src/share.mjs';
@@ -385,10 +386,11 @@ for (const control of [controllerEnabled, controllerSwap, controllerDeadzone]) {
 }
 
 let controllerConnected = false;
-let controllerButtons = { jump: false, action: false, pause: false };
+let controllerButtons = {};
+const controllerMenu = createControllerMenu(settings);
 function readController() {
   let pad;
-  if (controllerEnabled.checked) {
+  if (controllerEnabled.checked || settings.open) {
     try {
       pad = Array.from(navigator.getGamepads?.() ?? [])
         .find(device => device?.connected && device.mapping === 'standard');
@@ -396,29 +398,45 @@ function readController() {
   }
   controllerConnected = Boolean(pad);
   const down = index => Boolean(pad?.buttons[index]?.pressed);
+  const deadzone = Number(controllerDeadzone.value);
+  const axis = pad?.axes[0] ?? 0;
+  const vertical = pad?.axes[1] ?? 0;
   const buttons = {
     jump: down(controllerSwap.checked ? 2 : 0),
     action: down(controllerSwap.checked ? 0 : 2),
-    pause: down(9),
+    confirm: down(0), back: down(1), restart: down(3), menu: down(8), pause: down(9),
+    up: down(12) || vertical < -deadzone, down: down(13) || vertical > deadzone,
+    left: down(14) || axis < -deadzone, right: down(15) || axis > deadzone,
   };
-  const jump = buttons.jump && !controllerButtons.jump;
-  const action = buttons.action && !controllerButtons.action;
-  const pause = buttons.pause && !controllerButtons.pause;
+  const edge = name => buttons[name] && !controllerButtons[name];
+  const jump = edge('jump'), action = edge('action');
+  const actions = { ...buttons, confirm: edge('confirm'), back: edge('back'),
+    restart: edge('restart'), menu: edge('menu'), pause: edge('pause') };
   controllerButtons = buttons;
-  if (!pad || document.hidden || !document.hasFocus() || settings.open) return 0;
-
-  if (mode !== 'play') {
-    if ((jump || pause) && !start.disabled) start.click();
+  if (!pad || document.hidden || !document.hasFocus()) return 0;
+  if (settings.open) {
+    controllerMenu.handle(actions);
     return 0;
   }
-  if (pause) {
+  if (actions.menu || actions.restart) {
+    openSettings();
+    controllerMenu.focusFirst(actions.restart ? restart : undefined);
+    return 0;
+  }
+  if (mode !== 'play') {
+    if ((jump || actions.confirm || actions.pause) && !start.disabled) start.click();
+    return 0;
+  }
+  if (actions.pause) {
     togglePause();
+    return 0;
+  }
+  if (actions.back && currentMascotSprite()) {
+    activateMascot();
     return 0;
   }
   if (jump) pressed.add('jump');
   if (action) pressed.add('action');
-  const axis = pad.axes[0] ?? 0;
-  const deadzone = Number(controllerDeadzone.value);
   const dpad = Number(down(15)) - Number(down(14));
   return dpad || (Math.abs(axis) >= deadzone ? Math.sign(axis) : 0);
 }
@@ -880,12 +898,16 @@ canvas.addEventListener('pointerup', event => {
   mascotTap = null;
   if (!tap || tap.id !== event.pointerId || Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 14) return;
   if (!hitMascot(currentMascotSprite(), event.clientX, event.clientY, canvas.getBoundingClientRect(), width, height)) return;
+  activateMascot();
+});
+
+function activateMascot() {
   djDancerUnlocked = true;
   if (soundOn) {
     mascotLaugh.currentTime = 0;
     void mascotLaugh.play().catch(() => {});
   }
-});
+}
 
 function drawMascotCameo() {
   const sprite = currentMascotSprite();
