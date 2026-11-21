@@ -3,10 +3,10 @@
 ![The Great Monkey Beer Run — Lil’ G in Eau Claire](assets/branding/main-logo.png)
 
 <p align="center">
-  <a href="https://natsteff.github.io/lil-g-in-eau-claire/"><img src="docs/play-now.svg" width="400" alt="Play Now! Lil G in EC version 0.1.32"></a>
+  <a href="https://natsteff.github.io/lil-g-in-eau-claire/"><img src="docs/play-now.svg" width="400" alt="Play Now! Lil G in EC version 0.1.33"></a>
 </p>
 
-**Play version 0.1.32** in your browser. Full screen is recommended on desktop. On a phone, add the game to your Home Screen and play in landscape. [Open the game](https://natsteff.github.io/lil-g-in-eau-claire/)
+**Play version 0.1.33** in your browser. Full screen is recommended on desktop. On a phone, add the game to your Home Screen and play in landscape. [Open the game](https://natsteff.github.io/lil-g-in-eau-claire/)
 
 Pick up a towering stack of beer at the Unicorn Beer Distribution and carry it across Eau Claire to **3rd & Vine**. Dodge neighborhood traffic and swooping seagulls, ride on top of passing vehicles, and grab the spring near the start of the Event Center to unlock **Mega Jump**.
 
@@ -27,3 +27,15 @@ On mobile, tap **☰** to customize your controls. Choose arrows, Sliding Speed 
 | Mega Jump after collecting the spring | Quickly press **Space** twice | Quickly tap **Jump** twice |
 | Pick up beer, enter 3rd & Vine, or deliver | **F** | **Action** |
 | Pause, restart, sound, or full screen | **P**, **R**, **S**, or **V** | Matching toolbar buttons |
+
+## Batocera / Chromium fullscreen launch
+
+Use `?fullscreen=1` to make the game fill the browser window immediately, including on desktop Linux. This expands the game layout without requiring the browser Fullscreen API. It does not change desktop touch-control defaults or controller settings. Normal links retain their existing layout.
+
+To hide Chromium’s tabs and address bar as well, configure the Batocera launcher to start a dedicated Chromium window/process in kiosk mode:
+
+```sh
+chromium --kiosk "https://natsteff.github.io/lil-g-in-eau-claire/?fullscreen=1"
+```
+
+Use the Chromium executable/wrapper installed in that Batocera setup. The launch must include both the `--kiosk` flag and the URL. Adding the URL parameter alone cannot hide browser chrome. Ensure the browser has focus for controller input and retain a working Batocera exit shortcut. The game’s menu and V shortcut can still toggle its expanded layout; reloading the fullscreen URL starts expanded again.

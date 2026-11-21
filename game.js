@@ -465,8 +465,10 @@ settings.addEventListener('close', () => {
 shell.addEventListener('contextmenu', event => event.preventDefault());
 const mobile = matchMedia('(pointer: coarse)').matches
   || matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+// URL opt-in fills the browser window on desktop without needing a fullscreen gesture.
+const fullscreenRequested = new URLSearchParams(location.search).get('fullscreen') === '1';
 shell.classList.toggle('touch-mode', mobile);
-shell.classList.toggle('expanded', mobile);
+shell.classList.toggle('expanded', mobile || fullscreenRequested);
 const touchViewport = installTouchViewport(shell, { onCancel: clearInput, onResize: resizeCanvas });
 installDialogRotationRecovery(shell, {
   onCancel: clearInput,
