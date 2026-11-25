@@ -3,10 +3,10 @@
 ![The Great Monkey Beer Run — Lil’ G in Eau Claire](assets/branding/main-logo.png)
 
 <p align="center">
-  <a href="https://natsteff.github.io/lil-g-in-eau-claire/"><img src="docs/play-now.svg" width="400" alt="Play Now! Lil G in EC version 0.1.36"></a>
+  <a href="https://natsteff.github.io/lil-g-in-eau-claire/"><img src="docs/play-now.svg" width="400" alt="Play Now! Lil G in EC version 0.1.37"></a>
 </p>
 
-**Play version 0.1.36** in your browser. Full screen is recommended on desktop. On a phone, add the game to your Home Screen and play in landscape. [Open the game](https://natsteff.github.io/lil-g-in-eau-claire/)
+**Play version 0.1.37** in your browser. Full screen is recommended on desktop. On a phone, add the game to your Home Screen and play in landscape. [Open the game](https://natsteff.github.io/lil-g-in-eau-claire/)
 
 Pick up a towering stack of beer at the Unicorn Beer Distribution and carry it across Eau Claire to **3rd & Vine**. Dodge neighborhood traffic and swooping seagulls, ride on top of passing vehicles, and grab the spring near the start of the Event Center to unlock **Mega Jump**.
 
@@ -30,7 +30,9 @@ On mobile, tap **☰** to customize your controls. Choose arrows, Sliding Speed 
 
 ## Batocera / Chromium fullscreen launch
 
-Use `?fullscreen=1` to make the game fill the browser window immediately, including on desktop Linux. This expands the game layout without requiring the browser Fullscreen API. It does not change desktop touch-control defaults or controller settings. Normal links retain their existing layout.
+Use `?fullscreen=1` to make the game fill the browser window immediately, including on desktop Linux. This expands the game layout without requiring the browser Fullscreen API. It does not change desktop touch-control defaults or controller settings. Normal links retain their existing layout. Add `&controller=1` (for example, `?fullscreen=1&controller=1`) to show gamepad hints immediately in a controller-only launch. Otherwise hints switch to gamepad controls after controller input and back after keyboard input.
+
+Standard controllers use Start/Options to pause, View/Share to open the menu, and Y/Triangle to open the menu with Restart selected; A/Cross confirms. LB/L1 toggles sound and RB/R1 cycles soundtracks. In menus, D-pad/stick navigates, left/right adjusts settings, A/Cross selects, and B/Circle backs out of a submenu before closing the menu. Share opens only when selected explicitly.
 
 To hide Chromium’s tabs and address bar as well, configure the Batocera launcher to start a dedicated Chromium window/process in kiosk mode:
 

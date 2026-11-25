@@ -1,5 +1,7 @@
+import { loadImage } from './src/load-image.mjs';
+import { gamepadHints } from './src/control-hints.mjs';
 import { neutralState, atNeutral, detectDirection, readDirections, chooseGamepad } from './src/gamepad-directions.mjs?v=0.1.35';
-import { createControllerMenu } from './src/controller-menu.mjs';
+import { createControllerMenu } from './src/controller-menu.mjs?v=0.1.37';
 import { mascotSprite, hitMascot } from './src/mascot-cameo.mjs?v=0.1.23';
 import { onewheelMotion } from './src/onewheel-motion.mjs?v=0.1.26';
 import { installShareMenu } from './src/share.mjs';
@@ -20,6 +22,16 @@ const pause = document.querySelector('#pause');
 const sound = document.querySelector('#sound');
 const fullscreen = document.querySelector('#fullscreen');
 const shell = document.querySelector('main');
+const controlHints = document.querySelector('#control-hints');
+const keyboardHints = controlHints.textContent;
+const forceControllerHints = new URLSearchParams(location.search).get('controller') === '1';
+let controllerHintMode = forceControllerHints;
+function updateControlHints(pad) {
+  const compact = Boolean(pad && pad.mapping !== 'standard' && pad.buttons.length <= 8);
+  const copy = controllerHintMode ? gamepadHints({ menu: settings.open, compact, swapped: controllerSwap.checked }) : keyboardHints;
+  if (controlHints.textContent !== copy) controlHints.textContent = copy;
+  controlHints.dataset.input = controllerHintMode ? 'gamepad' : 'keyboard';
+}
 const touchControls = document.querySelector('nav[aria-label="Game controls"]');
 touchControls.hidden = !(matchMedia('(any-pointer: coarse)').matches || navigator.maxTouchPoints > 0);
 const soundtrack = document.querySelector('#soundtrack');
@@ -120,14 +132,6 @@ const route = [
   { art: 'destination', label: 'Destination', length: 960, ground: 252, door: 525, rightLimit: 585, obstacles: [[300, 6]] },
   { backdrop: './assets/3rd-and-vine-interior.png', label: 'Inside 3rd & Vine', length: 960, delivery: 450, ground: 355 },
 ];
-function loadImage(url) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(url));
-    image.src = url;
-  });
-}
 
 let backgrounds, player, carrier, cast, cargo, cargoLeft, vehicleArt, yellowTargaArt, downtownCast, toastCast, danceArt, eventCast, factoryWorker, breweryVan, breweryHipster, varietyCars, wagonArt, sportsCarArt, alfaRomeoArt, keiTruckArt, liftedPickupArt, redPickupArt, policeCarArt, blackSuvArt, whiteCrossoverArt, silverSuvArt, onewheelArt, mascotArt, djDancerArt, billboardArt, semiArt, busArt;
 let megaUnlocked = false;
@@ -299,6 +303,10 @@ restart.onclick = () => { settings.close(); restartRun(); };
 pause.onclick = () => { resumeAfterSettings = false; settings.close(); };
 
 window.addEventListener('keydown', event => {
+  if (!forceControllerHints && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    controllerHintMode = false;
+    updateControlHints();
+  }
   if (document.querySelector('#settings').open) return;
   if (event.code === 'Escape' && shell.classList.contains('expanded')) {
     shell.classList.remove('expanded');
@@ -512,17 +520,30 @@ function readController() {
     action: down(controllerSwap.checked ? 0 : actionButton),
     confirm: down(0), back: down(1), restart: !compact && down(3),
     menu: down(compact ? 2 : 8), pause: down(compact ? 3 : 9),
+    soundToggle: !compact && down(4), trackNext: !compact && down(5),
     poke: down(7) || (pad?.buttons[7]?.value ?? 0) > 0.5,
     ...directions,
   };
   const edge = name => buttons[name] && !controllerButtons[name];
   const jump = edge('jump'), action = edge('action');
   const actions = { ...buttons, confirm: edge('confirm'), back: edge('back'),
-    restart: edge('restart'), menu: edge('menu'), pause: edge('pause'), poke: edge('poke') };
+    restart: edge('restart'), menu: edge('menu'), pause: edge('pause'), poke: edge('poke'),
+    soundToggle: edge('soundToggle'), trackNext: edge('trackNext') };
   controllerButtons = buttons;
   if (document.hidden || !document.hasFocus()) return 0;
+  if (Object.values(buttons).some(Boolean)) controllerHintMode = true;
+  updateControlHints(pad);
   if (updateControllerSetup(pad)) return 0;
   if (!pad) return 0;
+  if (actions.soundToggle) toggleSound();
+  if (actions.trackNext) {
+    const tracks = [...soundtrack.options].filter(option => !option.disabled);
+    const next = tracks[(tracks.findIndex(option => option.value === soundtrack.value) + 1) % tracks.length];
+    if (next) {
+      soundtrack.value = next.value;
+      soundtrack.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
   if (settings.open) {
     controllerMenu.handle(actions);
     return 0;
@@ -1441,5 +1462,8 @@ try {
   requestAnimationFrame(frame);
 } catch (error) {
   progress.parentElement.hidden = true;
-  message.textContent = `Could not load game art: ${error.message}`;
+  message.textContent = `Could not load game art: ${error.message}. Check your connection and retry.`;
+  start.textContent = 'Retry loading';
+  start.onclick = () => location.reload();
+  start.disabled = false;
 }
